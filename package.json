@@ -6,6 +6,10 @@
     "author": "donpark <donpark@docuverse.com>",
     "license": "GPL-3.0",
     "private": false,
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/donpark/talk-recorder.git"
+    },
     "scripts": {
         "clean": "rm -rf dist/*; rm -rf dev/*; rm -rf .cache/*",
         "build": "parcel build src/recorder.js --out-dir dist/talk --no-source-maps",
