@@ -1,3 +1,9 @@
+## Status
+
+-   Alpha release'
+-   Should work with latest versions of Chrome and Firefox.
+-   Very little has been done so far to support older browsers.
+
 ## Install
 
 `talk-recorder` is pre-built in `dist` directory.
