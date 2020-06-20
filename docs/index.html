@@ -1,0 +1,122 @@
+<html>
+    <head> </head>
+    <body>
+        <script type="text/javascript" src="talk/recorder.js"></script>
+        <talk-recorder id="recorder"></talk-recorder>
+        <script type="text/javascript">
+            const workerUrl = "https://donpark.github.io/talk-recorder/talk/lamemp3/worker.js";
+            function getRecorder(type) {
+                switch (type) {
+                    case "new":
+                        return new TalkRecorder();
+                    case "get":
+                        return document.getElementById("recorder");
+                    case "create":
+                        return document.createElement("talk-recorder");
+                }
+            }
+
+            // Record an audio blob of type 'opus' or 'mp3'.
+            function record(recorder, type) {
+                return recorder
+                    .record({ type, workerUrl })
+                    .then((audioBlob) => {
+                        console.log("got recording", audioBlob);
+                        return audioBlob;
+                    })
+                    .catch((err) => console.error(err));
+            }
+
+            function PCB(promise, cb) {
+                return promise.then((result) => cb(null, result)).catch((err) => cb(err, null));
+            }
+
+            function recordCB(recorder, type, cb) {
+                PCB(recorder.record({ type, workerUrl }), (err, audioBlob) => {
+                    if (err) {
+                        console.error(err);
+                    } else {
+                        console.log("got recording", audioBlob);
+                    }
+                    cb(err, audioBlob);
+                });
+            }
+
+            // Displays an audio blob as an audio element.
+            function addRecording(audioBlob) {
+                const blobURL = URL.createObjectURL(audioBlob);
+                const audioEl = new Audio(blobURL);
+                audioEl.controls = true;
+                Object.assign(audioEl.style, {
+                    display: "block",
+                    height: "32px",
+                    margin: "5px",
+                });
+                document.getElementById("recordings").appendChild(audioEl);
+            }
+
+            // Gets or creates an instance of TalkRecorder using:
+            // 'new' - new TalkRecorder()
+            // 'get' - from an existing '<talk-recorder>' element.
+            // 'create' - from document.createElement('talk-recorder');
+            const recorder = getRecorder("new");
+
+            // Shows how to record an Opus blob.
+            //
+            function recordOpus() {
+                record(recorder, "opus").then((audioBlob) => addRecording(audioBlob));
+            }
+
+            // Shows how to record an MP3 blob.
+            // MP3 audio is larger and cannot be not easily editible but more compatible.
+            // Also demonstrates how to use callback with PCB wrapper.
+            function recordMP3() {
+                recordCB(recorder, "mp3", (err, audioBlob) => {
+                    if (audioBlob) {
+                        addRecording(audioBlob);
+                    }
+                });
+            }
+
+            // Show how to transcode an audio file/blob into MP3 blob.
+            function recordOpusThenConvertToMP3() {
+                record(recorder, "opus")
+                    .then((opusBlob) => recorder.convertToMP3(opusBlob, { workerUrl }))
+                    .then((mp3Blob) => {
+                        console.log("converted to", mp3Blob);
+                        addRecording(mp3Blob);
+                    });
+            }
+
+            // Stop recording
+            function stopRecording() {
+                recorder.stop();
+            }
+        </script>
+        <h2>TalkRecorder Demo</h2>
+        <p>Open browser console to see info on recorded blobs</p>
+        <div>
+            <div>
+                <button onclick="javascript: recordOpus()">Record Opus</button>
+                &nbsp;
+                <i>Opus audio is typically smaller in size than MP3 and potentially editable.</i>
+            </div>
+
+            <div>
+                <button onclick="javascript: recordMP3()">Record MP3</button>
+                &nbsp;
+                <i>MP3 audio is larger and cannot be not easily editible but more compatible.</i>
+            </div>
+
+            <div>
+                <button onclick="javascript: recordOpusThenConvertToMP3()">Record and convert to MP3</button>
+                &nbsp;
+                <i>Demonstrates transcoding audio file/blob to MP3</i>
+            </div>
+            <br />
+            <button onclick="javascript: stopRecording()">Stop</button>
+        </div>
+        <hr />
+        <div id="recordings"></div>
+    </body>
+</html>

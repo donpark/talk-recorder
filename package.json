@@ -1,0 +1,30 @@
+{
+    "name": "talk-recorder",
+    "version": "1.0.0",
+    "description": "records audio",
+    "browser": "talk/recorder.js",
+    "author": "donpark <donpark@docuverse.com>",
+    "license": "GPL-3.0",
+    "private": false,
+    "scripts": {
+        "clean": "rm -rf dist/*; rm -rf dev/*; rm -rf .cache/*",
+        "build": "parcel build src/recorder.js --out-dir dist/talk --no-source-maps",
+        "watch": "parcel watch src/recorder.js --out-dir dev/talk",
+        "demo": "parcel src/demo/index.html --out-dir dev/demo"
+    },
+    "dependencies": {},
+    "devDependencies": {
+        "@babel/core": "^7.10.2",
+        "@babel/plugin-proposal-optional-chaining": "^7.9.0",
+        "parcel-bundler": "^1.12.4",
+        "parcel-plugin-txt": "^1.0.3",
+        "parcel-plugin-static-files-copy": "^2.4.3"
+    },
+    "browserslist": [
+        "last 1 Chrome versions"
+    ],
+    "staticFiles": {
+        "staticPath": "static",
+        "watcherGlob": "**"
+    }
+}
