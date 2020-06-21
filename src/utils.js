@@ -19,3 +19,15 @@ export function promiseCallback(promise, cb) {
 export function triggerEvent(eventTarget, eventName, eventDetail) {
     eventTarget.dispatchEvent(new CustomEvent(eventName, { detail: eventDetail }));
 }
+
+export function friendlyFloat(value, oldValue) {
+    if (typeof value !== 'string') {
+        return oldValue;
+    }
+    const lastChar = value.trim().substr(-1);
+    let floatValue = parseFloat(value);
+    if (lastChar === 'k' || lastChar === 'K') {
+        floatValue *= 1000;
+    }
+    return floatValue;
+}

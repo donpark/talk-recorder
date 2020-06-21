@@ -2,7 +2,7 @@
     <head> </head>
     <body>
         <script type="text/javascript" src="../recorder.js"></script>
-        <talk-recorder id="recorder"></talk-recorder>
+        <talk-recorder id="recorder" bitrate="64k"></talk-recorder>
         <script type="text/javascript">
             function getRecorder(type) {
                 switch (type) {
@@ -58,7 +58,7 @@
             // 'new' - new TalkRecorder()
             // 'get' - from an existing '<talk-recorder>' element.
             // 'create' - from document.createElement('talk-recorder');
-            const recorder = getRecorder("new");
+            const recorder = getRecorder("get");
 
             // Shows how to record an Opus blob.
             //

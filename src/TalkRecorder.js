@@ -1,11 +1,11 @@
-import { triggerEvent } from "./utils";
+import { friendlyFloat, triggerEvent } from "./utils";
 
 const AudioContext = window.AudioContext || window.webkitAudioContext;
 const OfflineAudioContext = window.OfflineAudioContext || window.webkitOfflineAudioContext;
 
 export class TalkRecorder extends HTMLElement {
-    // Names of modifiable attributes to receive attributeChangedCallback on.
-    static observedAttributes = [];
+    // Lowercased names of modifiable attributes to receive attributeChangedCallback on.
+    static observedAttributes = ["bitrate"];
 
     constructor() {
         super();
@@ -16,6 +16,9 @@ export class TalkRecorder extends HTMLElement {
     // Attributes covered include custom as well as built-in attributes, like style.
     // NOTE: attribute name will be in lowercase as specfied in the HTML spec.
     attributeChangedCallback(name, oldValue, newValue) {
+        if (name === 'bitrate') {
+            this.bitRate = friendlyFloat(newValue, oldValue);
+        }
     }
 
     // Callback to notify custom element has been inserted into document.
@@ -83,18 +86,22 @@ export class TalkRecorder extends HTMLElement {
     async convertToMP3(audioBlob, options = {}) {
         options = Object.assign({}, {
             workerUrl: "lamemp3/worker.js",
+            sampleRate: 48000,
         }, options);
 
+        // decode audio samples using 48000 as default input sample rate.
+        const inputSampleRate = options.sampleRate || 48000;
         const audioData = await arrayBufferFromBlob(audioBlob);
-        const inputPCM = await decodeAudioData(audioData);
+        const inputPCM = await decodeAudioData(audioData, inputSampleRate);
+        const bitRate = this.bitRate || 64 * 1000; // MP3-specific default bitRate
 
         // Until direct to MP3 encoder implemented, record as Opus first then convert as a whole.
         return withWorker(options.workerUrl, (worker) => {
             const CHUNK_SIZE = 8192;
             worker.postMessage({
                 type: 'init',
-                sampleRate: 48000,  // OPUS sample rate
-                bitRate: 64 * 1000, // 64k
+                sampleRate: inputSampleRate,
+                bitRate
             });
 
             // send to worker in chunks
@@ -123,10 +130,12 @@ export class TalkRecorder extends HTMLElement {
     }
 
     async _recordOpus(stream, options) {
+        const bitRate = this.bitRate || (32 * 1000); // Uses 32k as default bitrate for Opus podcast
+
         // Use optional 'MediaRecorder' field of recording call options to override.
         const mediaRecorderOptions = Object.assign({}, {
             mimeType: 'audio/webm; codecs="opus"',
-            audioBitsPerSecond: 24 * 1024,
+            audioBitsPerSecond: bitRate,
         }, options.MediaRecorder);
 
         // MediaRecorder instance had issues when reused.
@@ -167,11 +176,13 @@ export class TalkRecorder extends HTMLElement {
     }
 
     async _recordMP3(stream, options) {
+        const sampleRate = stream.getAudioTracks()[0].getSettings().sampleRate;
         return withWorker(options.workerUrl, (worker) => {
+            const bitRate = this.bitRate || (64 * 1024); // MP3-specific default bitrate for podcasting
             worker.postMessage({
                 type: 'init',
-                sampleRate: 48000,  // OPUS sample rate
-                bitRate: 64 * 1000, // 64k
+                sampleRate,
+                bitRate
             });
 
             this._processStream(stream, (samples) => {
@@ -243,8 +254,8 @@ async function arrayBufferFromBlob(blob) {
  * 
  * @result {Float32Array}
  */
-async function decodeAudioData(audioData) {
-    const audioCtx = new OfflineAudioContext(1, 48000, 48000);
+async function decodeAudioData(audioData, sampleRate = 48000) {
+    const audioCtx = new OfflineAudioContext(1, sampleRate, sampleRate);
     const audioBuffer = await audioCtx.decodeAudioData(audioData);
     const audioPCM = new Float32Array(audioBuffer.length);
     audioBuffer.copyFromChannel(audioPCM, 0);
