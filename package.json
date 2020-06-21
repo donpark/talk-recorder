@@ -28,7 +28,7 @@
         "parcel-plugin-static-files-copy": "^2.4.3"
     },
     "browserslist": [
-        "last 1 Chrome versions"
+        "defaults"
     ],
     "staticFiles": {
         "staticPath": "static",

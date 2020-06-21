@@ -1,4 +1,4 @@
-// import "./TalkRecorderElement";
+import "regenerator-runtime/runtime";
 export * from "./TalkRecorder";
 import { TalkRecorder } from "./TalkRecorder";
 
