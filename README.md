@@ -56,6 +56,21 @@ or
 
     const recorder = document.createElement('talk-recorder');
 
+### bitRate
+
+Audio type-specific default audio bitRate are:
+
+-   Opus: 32kbps
+-   MP3: 64kbps
+
+To change the bitRate, set `bitRate` property like this:
+
+    recorder.bitRate = '64k';
+
+or as element attribute like this.
+
+    <talk-recorder bitRate="64k"></talk-recorder>
+
 ## TalkRecorder class
 
 TBD
