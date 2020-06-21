@@ -71,6 +71,10 @@ or as element attribute like this.
 
     <talk-recorder bitRate="64k"></talk-recorder>
 
+MP3-NOTE: bitRate currently does not apply to MP3 encoding because
+VBR (variable bitrate) mode of LAME MP3 encoder is used which,
+at quality level set to `5`, will vary bitrate between 120 to 150kbps.
+
 ## TalkRecorder class
 
 TBD
