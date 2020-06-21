@@ -11,11 +11,14 @@
         "url": "https://github.com/donpark/talk-recorder.git"
     },
     "scripts": {
-        "clean": "rm -rf dist/*; rm -rf dev/*; rm -rf .cache/*",
-        "build": "parcel build src/recorder.js --out-dir dist/talk --no-source-maps",
-        "watch": "parcel watch src/recorder.js --out-dir dev/talk",
-        "demo": "parcel src/demo/index.html --out-dir dev/demo"
+        "clean": "rm -rf dist/*; rm -rf dev/*; rm -rf lib/*; rm -rf .cache/*",
+        "build": "parcel build src/recorder.js --target=browser --out-dir dist/talk --no-source-maps",
+        "watch": "parcel watch src/recorder.js --target=browser --out-dir dev/talk",
+        "demo": "parcel src/demo/index.html --target=browser --out-dir dev/demo",
+        "build:node": "parcel build src/index.js --target=node --out-dir lib --no-source-maps",
+        "postinstall": "npm run build:node"
     },
+    "main": "lib/index.js",
     "dependencies": {},
     "devDependencies": {
         "@babel/core": "^7.10.2",
