@@ -4,13 +4,17 @@ const AudioContext = window.AudioContext || window.webkitAudioContext;
 const OfflineAudioContext = window.OfflineAudioContext || window.webkitOfflineAudioContext;
 
 export class TalkRecorder extends HTMLElement {
+    // Names of modifiable attributes to receive attributeChangedCallback on.
+    static observedAttributes = [];
+
     constructor() {
         super();
     }
 
-    // Callback used to notify when an attribute changes value.
+    // Callback used to notify when an attribute in `observedAttributes` list changes value.
     // Also called before connectedCallback with each attribute's initial value.
     // Attributes covered include custom as well as built-in attributes, like style.
+    // NOTE: attribute name will be in lowercase as specfied in the HTML spec.
     attributeChangedCallback(name, oldValue, newValue) {
     }
 
