@@ -1,4 +1,4 @@
-import { friendlyFloat, triggerEvent } from "./utils";
+import { getChannelData, friendlyFloat, triggerEvent } from "./utils";
 
 const AudioContext = window.AudioContext || window.webkitAudioContext;
 const OfflineAudioContext = window.OfflineAudioContext || window.webkitOfflineAudioContext;
@@ -230,20 +230,7 @@ export class TalkRecorder extends HTMLElement {
         const sourceNode = audioContext.createMediaStreamSource(stream);
 
         const processorNode = audioContext.createScriptProcessor(0, 1, 1);
-        processorNode.onaudioprocess = (e) => {
-            const inputBuffer = e.inputBuffer;
-            let frameSamples;
-
-            // Safari does not have AudioBuffer.copyFromChannel method.
-            if ('copyFromChannel' in inputBuffer) {
-                frameSamples = new Float32Array(inputBuffer.length);
-                inputBuffer.copyFromChannel(frameSamples, 0);
-            } else {
-                frameSamples = inputBuffer.getChannelData(0).slice();
-            }
-
-            processor(frameSamples)
-        }
+        processorNode.onaudioprocess = (e) => processor(getChannelData(e.inputBuffer, 0))
 
         sourceNode.connect(processorNode);
         processorNode.connect(audioContext.destination);
@@ -278,11 +265,11 @@ async function arrayBufferFromBlob(blob) {
  * @result {Float32Array}
  */
 async function decodeAudioData(audioData, sampleRate = 48000) {
-    const audioCtx = new OfflineAudioContext(1, sampleRate, sampleRate);
+    // OfflineAudioContext is more appropriate here but plain AudioContext
+    // is used to avoid potential outstanding unreleased memory issue.
+    const audioCtx = new AudioContext({ sampleRate });
     const audioBuffer = await audioCtx.decodeAudioData(audioData);
-    const audioPCM = new Float32Array(audioBuffer.length);
-    audioBuffer.copyFromChannel(audioPCM, 0);
-    return audioPCM;
+    return getChannelData(audioBuffer, 0);
 }
 
 function withWorker(workerUrl, workHandler) {

@@ -31,3 +31,21 @@ export function friendlyFloat(value, oldValue) {
     }
     return floatValue;
 }
+
+/**
+ * Get 'Transferable' raw audio samples from AudioBuffer.
+ * This is a convenience function to pave over lack of ubiquitous copyFromChannel support.
+ * 
+ * @param {AudioBuffer} audioBuffer 
+ * @param {number} channel 
+ */
+export function getChannelData(audioBuffer, channel) {
+    let channelData;
+    if ('copyFromChannel' in audioBuffer) {
+        channelData = new Float32Array(audioBuffer.length);
+        audioBuffer.copyFromChannel(channelData, channel);
+    } else {
+        channelData = audioBuffer.getChannelData(channel).slice();
+    }
+    return channelData;
+}
