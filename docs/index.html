@@ -4,7 +4,6 @@
         <script type="text/javascript" src="talk/recorder.js"></script>
         <talk-recorder id="recorder" bitRate="64k"></talk-recorder>
         <script type="text/javascript">
-            const workerUrl = "https://donpark.github.io/talk-recorder/talk/lamemp3/worker.js";
             function getRecorder(type) {
                 switch (type) {
                     case "new":
@@ -19,7 +18,7 @@
             // Record using promise
             function recordPromise(recorder, type) {
                 return recorder
-                    .record({ type, workerUrl })
+                    .record({ type })
                     .then((audioBlob) => {
                         console.log("got recording", audioBlob);
                         return audioBlob;
@@ -33,7 +32,7 @@
 
             // Record using callback
             function recordCB(recorder, type, cb) {
-                PCB(recorder.record({ type, workerUrl }), (err, audioBlob) => {
+                PCB(recorder.record({ type }), (err, audioBlob) => {
                     if (err) {
                         console.error(err);
                     } else {
@@ -76,7 +75,7 @@
                     },
                     { once: true }
                 );
-                recorder.record({ type, workerUrl });
+                recorder.record({ type });
             }
 
             // Displays an audio blob as an audio element.
@@ -121,7 +120,7 @@
                     "recorded",
                     (e) => {
                         const opusBlob = e.detail.blob;
-                        recorder.convert(opusBlob, { type: "mp3", workerUrl });
+                        recorder.convert(opusBlob, { type: "mp3" });
                         addRecording(opusBlob);
                     },
                     { once: true }

@@ -3,12 +3,18 @@ import { getChannelData, friendlyFloat, triggerEvent } from "./utils";
 const AudioContext = window.AudioContext || window.webkitAudioContext;
 const OfflineAudioContext = window.OfflineAudioContext || window.webkitOfflineAudioContext;
 
+// HACK: determine default worker URL using script tag. 
+const scriptUrl = new URL(document.currentScript.src, document.baseURI).toString();
+const scriptBaseUrl = scriptUrl.substr(0, scriptUrl.lastIndexOf('/'));
+const workerUrl = `${scriptBaseUrl}/lamemp3/worker.js`;
+
 export class TalkRecorder extends HTMLElement {
     // Lowercased names of modifiable attributes to receive attributeChangedCallback on.
     static observedAttributes = ["bitrate"];
 
     constructor() {
         super();
+
     }
 
     // Callback used to notify when an attribute in `observedAttributes` list changes value.
@@ -55,7 +61,7 @@ export class TalkRecorder extends HTMLElement {
         options = Object.assign({}, {
             type: 'opus',
             timeslice: 20,
-            workerUrl: "lamemp3/worker.js",
+            workerUrl,
         }, options);
 
         // Use optional 'getUserMedia' field of recording call options to override.
@@ -104,7 +110,7 @@ export class TalkRecorder extends HTMLElement {
         options = Object.assign({}, {
             sampleRate: 48000,
             type: 'mp3',
-            workerUrl: "lamemp3/worker.js",
+            workerUrl,
         }, options);
 
         // decode audio samples using 48000 as default input sample rate.

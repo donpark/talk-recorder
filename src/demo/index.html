@@ -18,7 +18,7 @@
             // Record using promise
             function recordPromise(recorder, type) {
                 return recorder
-                    .record({ type: type })
+                    .record({ type })
                     .then((audioBlob) => {
                         console.log("got recording", audioBlob);
                         return audioBlob;
@@ -32,7 +32,7 @@
 
             // Record using callback
             function recordCB(recorder, type, cb) {
-                PCB(recorder.record({ type: type }), (err, audioBlob) => {
+                PCB(recorder.record({ type }), (err, audioBlob) => {
                     if (err) {
                         console.error(err);
                     } else {
@@ -75,7 +75,7 @@
                     },
                     { once: true }
                 );
-                recorder.record({ type: type });
+                recorder.record({ type });
             }
 
             // Displays an audio blob as an audio element.
