@@ -7,6 +7,7 @@ const OfflineAudioContext = window.OfflineAudioContext || window.webkitOfflineAu
 const scriptUrl = new URL(document.currentScript.src, document.baseURI).toString();
 const scriptBaseUrl = scriptUrl.substr(0, scriptUrl.lastIndexOf('/'));
 const workerUrl = `${scriptBaseUrl}/lamemp3/worker.js`;
+console.log('workerUrl', { scriptUrl, scriptBaseUrl, workerUrl });
 
 export class TalkRecorder extends HTMLElement {
     // Lowercased names of modifiable attributes to receive attributeChangedCallback on.
