@@ -97,13 +97,14 @@ export class TalkRecorder extends HTMLElement {
         triggerEvent(this, 'stop', { reason });
     }
 
-    async convertToMP3(audioBlob, options = {}) {
+    async convert(audioBlob, options = {}) {
 
-        triggerEvent(this, 'convert', { blob: audioBlob });
+        triggerEvent(this, 'convert');
 
         options = Object.assign({}, {
-            workerUrl: "lamemp3/worker.js",
             sampleRate: 48000,
+            type: 'mp3',
+            workerUrl: "lamemp3/worker.js",
         }, options);
 
         // decode audio samples using 48000 as default input sample rate.
