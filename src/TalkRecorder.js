@@ -49,6 +49,9 @@ export class TalkRecorder extends HTMLElement {
         if (this.stream) {
             throw new Error('already recording');
         }
+
+        triggerEvent(this, 'record');
+
         options = Object.assign({}, {
             type: 'opus',
             timeslice: 20,
@@ -65,6 +68,7 @@ export class TalkRecorder extends HTMLElement {
             noiseSuppression: true
         }, options.getUserMedia);
 
+
         // start capturing audio
         this.stream = await navigator.mediaDevices.getUserMedia(getUserMediaOptions);
         this.addEventListener('stop', e => {
@@ -72,18 +76,31 @@ export class TalkRecorder extends HTMLElement {
             this.stream = null;
         }, { once: true });
 
-        if (options.type === 'opus') {
-            return this._recordOpus(this.stream, options);
-        } else if (options.type === 'mp3') {
-            return this._recordMP3(this.stream, options);
+        triggerEvent(this, 'stream', { stream: this.stream });
+
+        try {
+            let blob;
+            if (options.type === 'opus') {
+                blob = await this._recordOpus(this.stream, options);
+            } else if (options.type === 'mp3') {
+                blob = await this._recordMP3(this.stream, options);
+            }
+            triggerEvent(this, 'recorded', { blob });
+            return blob;
+        } catch (err) {
+            triggerEvent(this, 'error', { error: err });
+            throw err;
         }
     }
 
     async stop(reason = 'finish') {
-        triggerEvent(this, 'stop', reason);
+        triggerEvent(this, 'stop', { reason });
     }
 
     async convertToMP3(audioBlob, options = {}) {
+
+        triggerEvent(this, 'convert', { blob: audioBlob });
+
         options = Object.assign({}, {
             workerUrl: "lamemp3/worker.js",
             sampleRate: 48000,
@@ -126,6 +143,12 @@ export class TalkRecorder extends HTMLElement {
             worker.postMessage({
                 type: 'flush',
             });
+        }).then(blob => {
+            triggerEvent(this, 'converted', { blob });
+            return blob;
+        }).catch(err => {
+            triggerEvent(this, 'error', { error: err });
+            throw err;
         })
     }
 
@@ -143,7 +166,7 @@ export class TalkRecorder extends HTMLElement {
         const recorder = new MediaRecorder(stream, mediaRecorderOptions);
 
         // Stop event is used to stop recording.
-        this.addEventListener('stop', ({ detail: reason }) => {
+        this.addEventListener('stop', ({ detail: { reason } }) => {
             if (!recorder || recorder.state !== 'recording') {
                 return;
             }

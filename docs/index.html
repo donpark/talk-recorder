@@ -16,8 +16,8 @@
                 }
             }
 
-            // Record an audio blob of type 'opus' or 'mp3'.
-            function record(recorder, type) {
+            // Record using promise
+            function recordPromise(recorder, type) {
                 return recorder
                     .record({ type, workerUrl })
                     .then((audioBlob) => {
@@ -31,6 +31,7 @@
                 return promise.then((result) => cb(null, result)).catch((err) => cb(err, null));
             }
 
+            // Record using callback
             function recordCB(recorder, type, cb) {
                 PCB(recorder.record({ type, workerUrl }), (err, audioBlob) => {
                     if (err) {
@@ -40,6 +41,42 @@
                     }
                     cb(err, audioBlob);
                 });
+            }
+
+            // Record using events
+            function recordEvents(recorder, type) {
+                recorder.addEventListener(
+                    "record",
+                    (e) => {
+                        console.log("recording started");
+                    },
+                    { once: true }
+                );
+                recorder.addEventListener(
+                    "stream",
+                    (e) => {
+                        const stream = e.detail.stream;
+                        console.log("recording stream", stream);
+                    },
+                    { once: true }
+                );
+                recorder.addEventListener(
+                    "recorded",
+                    (e) => {
+                        const blob = e.detail.blob;
+                        console.log("recorded blob", blob);
+                    },
+                    { once: true }
+                );
+                recorder.addEventListener(
+                    "error",
+                    (e) => {
+                        const error = e.detail.error;
+                        console.error("recording failed", error);
+                    },
+                    { once: true }
+                );
+                recorder.record({ type: type });
             }
 
             // Displays an audio blob as an audio element.
@@ -64,7 +101,7 @@
             // Shows how to record an Opus blob.
             //
             function recordOpus() {
-                record(recorder, "opus").then((audioBlob) => addRecording(audioBlob));
+                recordPromise(recorder, "opus").then((audioBlob) => addRecording(audioBlob));
             }
 
             // Shows how to record an MP3 blob.
@@ -78,14 +115,18 @@
                 });
             }
 
-            // Show how to transcode an audio file/blob into MP3 blob.
+            // Show how to transcode an audio file/blob into MP3 blob using events
             function recordOpusThenConvertToMP3() {
-                record(recorder, "opus")
-                    .then((opusBlob) => recorder.convertToMP3(opusBlob, { workerUrl }))
-                    .then((mp3Blob) => {
-                        console.log("converted to", mp3Blob);
-                        addRecording(mp3Blob);
-                    });
+                recorder.addEventListener("recorded", (e) => {
+                    const opusBlob = e.detail.blob;
+                    recorder.convertToMP3(opusBlob);
+                    addRecording(opusBlob);
+                });
+                recorder.addEventListener("converted", (e) => {
+                    const mp3Blob = e.detail.blob;
+                    addRecording(mp3Blob);
+                });
+                recordEvents(recorder, "opus");
             }
 
             // Stop recording

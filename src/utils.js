@@ -16,7 +16,7 @@ export function promiseCallback(promise, cb) {
  * @param {string} eventName 
  * @param {any} eventDetail 
  */
-export function triggerEvent(eventTarget, eventName, eventDetail) {
+export function triggerEvent(eventTarget, eventName, eventDetail = null) {
     eventTarget.dispatchEvent(new CustomEvent(eventName, { detail: eventDetail }));
 }
 
