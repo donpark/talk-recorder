@@ -121,7 +121,7 @@
                     "recorded",
                     (e) => {
                         const opusBlob = e.detail.blob;
-                        recorder.convert(opusBlob, { type: "mp3" });
+                        recorder.convert(opusBlob, { type: "mp3", workerUrl });
                         addRecording(opusBlob);
                     },
                     { once: true }
