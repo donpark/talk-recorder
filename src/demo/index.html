@@ -26,6 +26,10 @@
                     .catch((err) => console.error(err));
             }
 
+            function PCB(promise, cb) {
+                return promise.then((result) => cb(null, result)).catch((err) => cb(err, null));
+            }
+
             // Record using callback
             function recordCB(recorder, type, cb) {
                 PCB(recorder.record({ type: type }), (err, audioBlob) => {
@@ -72,21 +76,6 @@
                     { once: true }
                 );
                 recorder.record({ type: type });
-            }
-
-            function PCB(promise, cb) {
-                return promise.then((result) => cb(null, result)).catch((err) => cb(err, null));
-            }
-
-            function recordCB(recorder, type, cb) {
-                PCB(recorder.record({ type: type }), (err, audioBlob) => {
-                    if (err) {
-                        console.error(err);
-                    } else {
-                        console.log("got recording", audioBlob);
-                    }
-                    cb(err, audioBlob);
-                });
             }
 
             // Displays an audio blob as an audio element.
