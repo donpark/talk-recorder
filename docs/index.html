@@ -117,15 +117,23 @@
 
             // Show how to transcode an audio file/blob into MP3 blob using events
             function recordOpusThenConvertToMP3() {
-                recorder.addEventListener("recorded", (e) => {
-                    const opusBlob = e.detail.blob;
-                    recorder.convertToMP3(opusBlob);
-                    addRecording(opusBlob);
-                });
-                recorder.addEventListener("converted", (e) => {
-                    const mp3Blob = e.detail.blob;
-                    addRecording(mp3Blob);
-                });
+                recorder.addEventListener(
+                    "recorded",
+                    (e) => {
+                        const opusBlob = e.detail.blob;
+                        recorder.convertToMP3(opusBlob);
+                        addRecording(opusBlob);
+                    },
+                    { once: true }
+                );
+                recorder.addEventListener(
+                    "converted",
+                    (e) => {
+                        const mp3Blob = e.detail.blob;
+                        addRecording(mp3Blob);
+                    },
+                    { once: true }
+                );
                 recordEvents(recorder, "opus");
             }
 
