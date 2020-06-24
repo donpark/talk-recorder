@@ -291,7 +291,12 @@ function withWorker(workerUrl, workHandler) {
     }
 
     return new Promise((resolve, reject) => {
-        const worker = new Worker(workerUrl);
+        let worker;
+        if (new URL(workerUrl).host === window.location.host) {
+            worker = new Worker(workerUrl);
+        } else {
+            worker = new Worker(URL.createObjectURL(new Blob([`importScripts("${workerUrl}");`])));
+        }
         worker.onmessage = (msg) => {
             switch (msg.data.type) {
                 case 'ready':

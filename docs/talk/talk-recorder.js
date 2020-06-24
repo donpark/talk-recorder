@@ -1526,7 +1526,13 @@ function withWorker(workerUrl, workHandler) {
   }
 
   return new Promise(function (resolve, reject) {
-    var worker = new Worker(workerUrl);
+    var worker;
+
+    if (new URL(workerUrl).host === window.location.host) {
+      worker = new Worker(workerUrl);
+    } else {
+      worker = new Worker(URL.createObjectURL(new Blob(["importScripts(\"".concat(workerUrl, "\");")])));
+    }
 
     worker.onmessage = function (msg) {
       switch (msg.data.type) {
