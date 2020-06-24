@@ -3,11 +3,15 @@ import { getChannelData, friendlyFloat, triggerEvent } from "./utils";
 const AudioContext = window.AudioContext || window.webkitAudioContext;
 const OfflineAudioContext = window.OfflineAudioContext || window.webkitOfflineAudioContext;
 
-// HACK: determine default worker URL using script tag. 
-const scriptUrl = new URL(document.currentScript.src, document.baseURI).toString();
-const scriptBaseUrl = scriptUrl.substr(0, scriptUrl.lastIndexOf('/'));
-const workerUrl = `${scriptBaseUrl}/lamemp3/worker.js`;
-console.log('workerUrl', { scriptUrl, scriptBaseUrl, workerUrl });
+// HACK: determine default worker URL using script tag's src attribute if available.
+let workerUrl = "./lamemp3/worker.js";
+if (document.currentScript && document.currentScript.src) {
+    const scriptUrl = new URL(document.currentScript.src, document.baseURI).toString();
+    const scriptBaseUrl = scriptUrl.substr(0, scriptUrl.lastIndexOf('/'));
+    workerUrl = `${scriptBaseUrl}/lamemp3/worker.js`;
+}
+console.log('default workerUrl', workerUrl);
+
 
 export class TalkRecorder extends HTMLElement {
     // Lowercased names of modifiable attributes to receive attributeChangedCallback on.
