@@ -1,8 +1,8 @@
 {
     "name": "talk-recorder",
-    "version": "1.1.1",
+    "version": "1.1.2",
     "description": "records audio",
-    "browser": "talk/recorder.js",
+    "browser": "dist/talk-recorder.js",
     "author": "donpark <donpark@docuverse.com>",
     "license": "GPL-3.0",
     "private": false,
@@ -12,11 +12,13 @@
     },
     "scripts": {
         "clean": "rm -rf dist/*; rm -rf dev/*; rm -rf lib/*; rm -rf .cache/*",
-        "build": "parcel build src/recorder.js --target=browser --out-dir dist/talk --no-source-maps; cp -R dist/talk docs",
+        "build": "yarn build:debug; yarn build:minified; mkdir -p docs/talk; cp -R dist/* docs/talk",
+        "build:debug": "parcel build src/recorder.js --target=browser --out-dir dist --out-file talk-recorder.js --no-minify",
+        "build:minified": "parcel build src/recorder.js --target=browser --out-dir dist --out-file talk-recorder.min.js",
         "watch": "parcel watch src/recorder.js --target=browser --out-dir dev/talk",
         "demo": "parcel src/demo/index.html --target=browser --out-dir dev/demo",
         "build:node": "parcel build src/index.js --target=node --out-dir lib --no-source-maps",
-        "postinstall": "npm run build:node"
+        "prepublish": "yarn build"
     },
     "main": "lib/index.js",
     "dependencies": {},
