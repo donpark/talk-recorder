@@ -2,6 +2,7 @@ import { getChannelData, friendlyFloat, triggerEvent } from "./utils";
 
 const AudioContext = window.AudioContext || window.webkitAudioContext;
 const OfflineAudioContext = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+const getUserMedia = navigator.mediaDevices ? navigator.mediaDevices.getUserMedia : navigator.getUserMedia;
 
 // HACK: determine default worker URL using script tag's src attribute if available.
 let workerUrl = "./lamemp3/worker.js";
@@ -15,7 +16,7 @@ console.log('default workerUrl', workerUrl);
 
 export class TalkRecorder extends HTMLElement {
     // Lowercased names of modifiable attributes to receive attributeChangedCallback on.
-    static observedAttributes = ["bitrate"];
+    static observedAttributes = ["bitrate", "host"];
 
     constructor() {
         super();
@@ -29,6 +30,8 @@ export class TalkRecorder extends HTMLElement {
     attributeChangedCallback(name, oldValue, newValue) {
         if (name === 'bitrate') {
             this.bitRate = friendlyFloat(newValue, oldValue);
+        } else if (name === 'host') {
+            this.host = newValue;
         }
     }
 
@@ -54,20 +57,27 @@ export class TalkRecorder extends HTMLElement {
     }
 
     async record(options = {}) {
-        if (!this.isSupported()) {
-            throw new Error('This browser does not support media recording');
-        }
         if (this.stream) {
             throw new Error('already recording');
         }
-
-        triggerEvent(this, 'record');
 
         options = Object.assign({}, {
             type: 'opus',
             timeslice: 20,
             workerUrl,
         }, options);
+
+        if (!window.MediaRecorder || !window.Worker || !window.WebAssembly) {
+            throw new Error('Current browser is not supported by talk-recorder');
+        }
+        if (!getUserMedia && !this.host && window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
+            throw new Error('HTTPS is required for media recording.');
+        }
+        if (options.type !== 'opus' && options.type !== 'mp3') {
+            throw new Error('unknown recording type');
+        }
+
+        triggerEvent(this, 'record');
 
         // Use optional 'getUserMedia' field of recording call options to override.
         const getUserMediaOptions = Object.assign({}, {
@@ -78,7 +88,6 @@ export class TalkRecorder extends HTMLElement {
             echoCancellation: true,
             noiseSuppression: true
         }, options.getUserMedia);
-
 
         // start capturing audio
         this.stream = await navigator.mediaDevices.getUserMedia(getUserMediaOptions);
