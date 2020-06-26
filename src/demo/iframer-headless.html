@@ -4,7 +4,12 @@
     </head>
     <body>
         <script type="text/javascript" src="../recorder.js"></script>
-        <talk-recorder id="recorder" bitRate="64k" host="http://localhost:5000/iframed-headless.html"></talk-recorder>
+        <talk-recorder
+            id="recorder"
+            bitRate="64k"
+            host="http://localhost:5000/iframed-headless.html"
+            role="iframer"
+        ></talk-recorder>
         <script type="text/javascript">
             function getRecorder(type) {
                 switch (type) {
