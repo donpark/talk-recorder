@@ -7,7 +7,7 @@
         <talk-recorder id="recorder" bitRate="64k"></talk-recorder>
         <script type="text/javascript">
             window.addEventListener("message", (e) => {
-                console.log("iframed received", e);
+                console.log("iframed received", { e, referrer: document.referrer });
                 parent.postMessage({ type: "iframed.hello" }, e.origin);
             });
             function getRecorder(type) {

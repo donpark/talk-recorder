@@ -1,7 +1,7 @@
 {
     "files.exclude": {
         "dev": true,
-        "dist": false,
+        "dist": true,
         "docs/talk": true,
         "lib": true,
         "node_modules": true

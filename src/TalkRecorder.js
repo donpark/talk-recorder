@@ -156,21 +156,11 @@ export class TalkRecorder extends HTMLElement {
         if (!this.iframe) {
             throw new Error('service frame to host failed to open');
         }
-        const hostURL = new URL(this.host);
-        const targetOrigin = `${hostURL.protocol}//${hostURL.host}`;
-        window.addEventListener('message', e => {
-            if (e.origin !== targetOrigin) {
-                return;
-            }
+        receiveMessageFromFrame(this.iframe, e => {
             console.log("iframer received", e);
+            // replyToMessage({ type: 'reply' }, e);
         })
-        console.log('_recordOffset', {
-            iframe: this.iframe,
-            serviceWindow: window.frames['talk-service'],
-            contentWindow: this.iframe.contentWindow,
-        })
-        console.log('targetOrigin', targetOrigin)
-        this.iframe.contentWindow.postMessage({ type: 'record', options }, targetOrigin);
+        sendMessageToFrame(this.iframe, { type: 'record', options });
     }
 
     async _recordOnsite(options) {
@@ -384,4 +374,50 @@ function createServiceFrame(host, headless) {
         iframe.style.border = 'none';
     }
     return iframe;
+}
+
+function referrerOrigin() {
+    if (!document.referrer) {
+        return null;
+    }
+    const url = new URL(document.referrer);
+    return `${url.protocol}//${url.host}`;
+}
+
+function replyToMessage(reply, msg) {
+    if (!reply) {
+        throw new Error('reply is null');
+    }
+    if (!msg || !msg.source) {
+        throw new Error('message to reply to or its source is null');
+    }
+    msg.source.postMessage(reply, msg.origin);
+}
+
+function sendMessageToFrame(frame, msg) {
+    if (!frame || !frame.src) {
+        throw new Error('frame or frame.src is null');
+    }
+    const frameURL = new URL(frame.src);
+    const frameOrigin = `${frameURL.protocol}//${frameURL.host}`;
+
+    frame.contentWindow.postMessage(msg, frameOrigin);
+}
+
+function receiveMessageFromFrame(frame, receiver) {
+    if (!frame || !frame.src) {
+        throw new Error('frame or frame.src is null');
+    }
+    const frameURL = new URL(frame.src);
+    const frameOrigin = `${frameURL.protocol}//${frameURL.host}`;
+
+    const listener = e => {
+        if (e.origin === frameOrigin) {
+            receiver(e);
+        }
+    };
+    window.addEventListener('message', listener);
+    return () => {
+        window.removeEventListener('message', listener);
+    }
 }
