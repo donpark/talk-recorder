@@ -5,12 +5,6 @@
     <body>
         <script type="text/javascript" src="../recorder.js"></script>
         <talk-recorder id="recorder" bitRate="64k" role="iframed"></talk-recorder>
-        <script type="text/javascript">
-            window.addEventListener("message", (e) => {
-                console.log("iframed received", { e, referrer: document.referrer });
-                parent.postMessage({ type: "iframed.hello" }, e.origin);
-            });
-        </script>
         <h2>TalkRecorder Demo: iframed</h2>
         <p>Open browser console to see info on recorded blobs</p>
         <div>

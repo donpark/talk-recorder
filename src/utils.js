@@ -72,7 +72,6 @@ export async function withWorker(workerUrl, workHandler) {
     if (!window.Worker || !window.WebAssembly) {
         throw new Error('Worker and WebAssembly features not available');
     }
-
     return new Promise((resolve, reject) => {
         let worker;
         if (new URL(workerUrl).host === window.location.host) {

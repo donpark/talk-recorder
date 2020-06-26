@@ -1,17 +1,6 @@
 import { TalkLocalService } from "./TalkLocalService";
 import { TalkRemoteService } from "./TalkRemoteService"
-
-import { friendlyFloat, triggerEvent } from "./utils";
-
-// HACK: determine default worker URL using script tag's src attribute if available.
-let workerUrl = "./lamemp3/worker.js";
-if (document.currentScript && document.currentScript.src) {
-    const scriptUrl = new URL(document.currentScript.src, document.baseURI).toString();
-    const scriptBaseUrl = scriptUrl.substr(0, scriptUrl.lastIndexOf('/'));
-    workerUrl = `${scriptBaseUrl}/lamemp3/worker.js`;
-}
-// console.log('default workerUrl', workerUrl);
-
+import { friendlyFloat } from "./utils";
 
 export class TalkRecorder extends HTMLElement {
     // Lowercased names of modifiable attributes to receive attributeChangedCallback on.
@@ -52,6 +41,31 @@ export class TalkRecorder extends HTMLElement {
             this.appendChild(this.iframe);
         } else {
             this.service = new TalkLocalService();
+            if (this.role === 'iframed') {
+                let iframerOrigin;
+                const cleanup = receiveMessageFromParent(e => {
+                    iframerOrigin = e.origin;
+                    switch (e.data.type) {
+                        case 'record':
+                            this.record(e.data.options);
+                            break;
+                        case 'stop':
+                            this.stop(e.data.reason);
+                            break;
+                        default:
+                            console.error('unknown message type', e.data);
+                    }
+                })
+                this.addEventListener('recorded', e => {
+                    const { blob } = e.detail;
+                    if (blob && iframerOrigin) {
+                        parent.postMessage({
+                            type: 'recorded',
+                            blob,
+                        }, iframerOrigin)
+                    }
+                })
+            }
         }
     }
 
@@ -75,8 +89,6 @@ export class TalkRecorder extends HTMLElement {
     async record(options = {}) {
         options = Object.assign({}, {
             type: 'opus',
-            timeslice: 20,
-            workerUrl,
         }, options);
 
         if (options.type !== 'opus' && options.type !== 'mp3') {
@@ -92,5 +104,13 @@ export class TalkRecorder extends HTMLElement {
 
     async convert(audioBlob, options = {}) {
         return this.service.convert(this, audioBlob, options);
+    }
+}
+
+function receiveMessageFromParent(receiver) {
+    const listener = e => e.source === parent && receiver(e);
+    window.addEventListener('message', listener);
+    return () => {
+        window.removeEventListener('message', listener);
     }
 }

@@ -858,6 +858,13 @@ exports.promiseCallback = promiseCallback;
 exports.triggerEvent = triggerEvent;
 exports.friendlyFloat = friendlyFloat;
 exports.getChannelData = getChannelData;
+exports.arrayBufferFromBlob = arrayBufferFromBlob;
+exports.decodeAudioData = decodeAudioData;
+exports.withWorker = withWorker;
+
+function asyncGeneratorStep(gen, resolve, reject, _next, _throw, key, arg) { try { var info = gen[key](arg); var value = info.value; } catch (error) { reject(error); return; } if (info.done) { resolve(value); } else { Promise.resolve(value).then(_next, _throw); } }
+
+function _asyncToGenerator(fn) { return function () { var self = this, args = arguments; return new Promise(function (resolve, reject) { var gen = fn.apply(self, args); function _next(value) { asyncGeneratorStep(gen, resolve, reject, _next, _throw, "next", value); } function _throw(err) { asyncGeneratorStep(gen, resolve, reject, _next, _throw, "throw", err); } _next(undefined); }); }; }
 
 /**
  * Turns a promise into callback.
@@ -924,13 +931,775 @@ function getChannelData(audioBuffer, channel) {
 
   return channelData;
 }
-},{}],"TnXr":[function(require,module,exports) {
+
+function arrayBufferFromBlob(_x) {
+  return _arrayBufferFromBlob.apply(this, arguments);
+}
+
+function _arrayBufferFromBlob() {
+  _arrayBufferFromBlob = _asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee(blob) {
+    return regeneratorRuntime.wrap(function _callee$(_context) {
+      while (1) {
+        switch (_context.prev = _context.next) {
+          case 0:
+            return _context.abrupt("return", new Promise(function (resolve, reject) {
+              var reader = new FileReader();
+              reader.readAsArrayBuffer(blob);
+
+              reader.onload = function () {
+                return resolve(reader.result);
+              };
+
+              reader.onerror = function () {
+                return reject(reader.error);
+              };
+            }));
+
+          case 1:
+          case "end":
+            return _context.stop();
+        }
+      }
+    }, _callee);
+  }));
+  return _arrayBufferFromBlob.apply(this, arguments);
+}
+
+function decodeAudioData(_x2) {
+  return _decodeAudioData.apply(this, arguments);
+}
+
+function _decodeAudioData() {
+  _decodeAudioData = _asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee2(audioData) {
+    var sampleRate,
+        audioCtx,
+        audioBuffer,
+        _args2 = arguments;
+    return regeneratorRuntime.wrap(function _callee2$(_context2) {
+      while (1) {
+        switch (_context2.prev = _context2.next) {
+          case 0:
+            sampleRate = _args2.length > 1 && _args2[1] !== undefined ? _args2[1] : 48000;
+            // OfflineAudioContext is more appropriate here but plain AudioContext
+            // is used to avoid potential outstanding unreleased memory issue.
+            audioCtx = new AudioContext({
+              sampleRate: sampleRate
+            });
+            _context2.next = 4;
+            return audioCtx.decodeAudioData(audioData);
+
+          case 4:
+            audioBuffer = _context2.sent;
+            return _context2.abrupt("return", getChannelData(audioBuffer, 0));
+
+          case 6:
+          case "end":
+            return _context2.stop();
+        }
+      }
+    }, _callee2);
+  }));
+  return _decodeAudioData.apply(this, arguments);
+}
+
+function withWorker(_x3, _x4) {
+  return _withWorker.apply(this, arguments);
+}
+
+function _withWorker() {
+  _withWorker = _asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee3(workerUrl, workHandler) {
+    return regeneratorRuntime.wrap(function _callee3$(_context3) {
+      while (1) {
+        switch (_context3.prev = _context3.next) {
+          case 0:
+            if (!(!window.Worker || !window.WebAssembly)) {
+              _context3.next = 2;
+              break;
+            }
+
+            throw new Error('Worker and WebAssembly features not available');
+
+          case 2:
+            return _context3.abrupt("return", new Promise(function (resolve, reject) {
+              var worker;
+
+              if (new URL(workerUrl).host === window.location.host) {
+                worker = new Worker(workerUrl);
+              } else {
+                worker = new Worker(URL.createObjectURL(new Blob(["importScripts(\"".concat(workerUrl, "\");")])));
+              }
+
+              worker.onmessage = function (msg) {
+                switch (msg.data.type) {
+                  case 'ready':
+                    workHandler(worker);
+                    break;
+
+                  case 'done':
+                    worker.terminate();
+                    resolve(msg.data.blob);
+                    break;
+                }
+              };
+
+              worker.onerror = function (err) {
+                reject(err);
+              };
+            }));
+
+          case 3:
+          case "end":
+            return _context3.stop();
+        }
+      }
+    }, _callee3);
+  }));
+  return _withWorker.apply(this, arguments);
+}
+},{}],"uZlT":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = exports.TalkLocalService = void 0;
+
+var _utils = require("./utils");
+
+function asyncGeneratorStep(gen, resolve, reject, _next, _throw, key, arg) { try { var info = gen[key](arg); var value = info.value; } catch (error) { reject(error); return; } if (info.done) { resolve(value); } else { Promise.resolve(value).then(_next, _throw); } }
+
+function _asyncToGenerator(fn) { return function () { var self = this, args = arguments; return new Promise(function (resolve, reject) { var gen = fn.apply(self, args); function _next(value) { asyncGeneratorStep(gen, resolve, reject, _next, _throw, "next", value); } function _throw(err) { asyncGeneratorStep(gen, resolve, reject, _next, _throw, "throw", err); } _next(undefined); }); }; }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+function _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
+
+function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); return Constructor; }
+
+var AudioContext = window.AudioContext || window.webkitAudioContext;
+var getUserMedia = navigator.mediaDevices ? navigator.mediaDevices.getUserMedia : navigator.getUserMedia; // HACK: determine default worker URL using script tag's src attribute if available.
+
+var workerUrl = "./lamemp3/worker.js";
+
+if (document.currentScript && document.currentScript.src) {
+  console.log('determine workerUrl', {
+    currentScript: document.currentScript,
+    currentScriptSrc: document.currentScript.src
+  });
+  var scriptUrl = new URL(document.currentScript.src, document.baseURI).toString();
+  var scriptBaseUrl = scriptUrl.substr(0, scriptUrl.lastIndexOf('/'));
+  workerUrl = "".concat(scriptBaseUrl, "/lamemp3/worker.js");
+}
+
+var TalkLocalService = /*#__PURE__*/function () {
+  function TalkLocalService() {
+    _classCallCheck(this, TalkLocalService);
+  }
+
+  _createClass(TalkLocalService, [{
+    key: "record",
+    value: function () {
+      var _record = _asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee(element, options) {
+        var getUserMediaOptions, blob;
+        return regeneratorRuntime.wrap(function _callee$(_context) {
+          while (1) {
+            switch (_context.prev = _context.next) {
+              case 0:
+                if (!element.stream) {
+                  _context.next = 2;
+                  break;
+                }
+
+                throw new Error('already recording');
+
+              case 2:
+                if (!(!window.MediaRecorder || !window.Worker || !window.WebAssembly)) {
+                  _context.next = 4;
+                  break;
+                }
+
+                throw new Error('Current browser is not supported by talk-recorder');
+
+              case 4:
+                if (!(!getUserMedia && !element.host && window.location.protocol !== 'https:' && window.location.hostname !== 'localhost')) {
+                  _context.next = 6;
+                  break;
+                }
+
+                throw new Error('HTTPS is required for media recording.');
+
+              case 6:
+                options = Object.assign({
+                  type: 'opus',
+                  timeslice: 20,
+                  workerUrl: workerUrl
+                }, options); // Use optional 'getUserMedia' field of recording call options to override.
+
+                getUserMediaOptions = Object.assign({}, {
+                  audio: true,
+                  video: false,
+                  channelCount: 1,
+                  autoGainControl: true,
+                  echoCancellation: true,
+                  noiseSuppression: true
+                }, options.getUserMedia); // start capturing audio
+
+                _context.next = 10;
+                return navigator.mediaDevices.getUserMedia(getUserMediaOptions);
+
+              case 10:
+                element.stream = _context.sent;
+                (0, _utils.triggerEvent)(element, 'record', {
+                  stream: element.stream
+                });
+                element.addEventListener('stop', function (e) {
+                  element.stream.getTracks().forEach(function (track) {
+                    return track.stop();
+                  });
+                  element.stream = null;
+                }, {
+                  once: true
+                });
+                _context.prev = 13;
+
+                if (!(options.type === 'opus')) {
+                  _context.next = 20;
+                  break;
+                }
+
+                _context.next = 17;
+                return this._recordOpus(element, element.stream, options);
+
+              case 17:
+                blob = _context.sent;
+                _context.next = 24;
+                break;
+
+              case 20:
+                if (!(options.type === 'mp3')) {
+                  _context.next = 24;
+                  break;
+                }
+
+                _context.next = 23;
+                return this._recordMP3(element, element.stream, options);
+
+              case 23:
+                blob = _context.sent;
+
+              case 24:
+                (0, _utils.triggerEvent)(element, 'recorded', {
+                  blob: blob
+                });
+                return _context.abrupt("return", blob);
+
+              case 28:
+                _context.prev = 28;
+                _context.t0 = _context["catch"](13);
+                (0, _utils.triggerEvent)(element, 'error', {
+                  error: _context.t0
+                });
+                throw _context.t0;
+
+              case 32:
+              case "end":
+                return _context.stop();
+            }
+          }
+        }, _callee, this, [[13, 28]]);
+      }));
+
+      function record(_x, _x2) {
+        return _record.apply(this, arguments);
+      }
+
+      return record;
+    }()
+  }, {
+    key: "stop",
+    value: function stop(element, reason) {
+      (0, _utils.triggerEvent)(element, 'stop', {
+        reason: reason
+      });
+    }
+  }, {
+    key: "convert",
+    value: function () {
+      var _convert = _asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee2(element, audioBlob) {
+        var options,
+            inputSampleRate,
+            audioData,
+            inputPCM,
+            bitRate,
+            _args2 = arguments;
+        return regeneratorRuntime.wrap(function _callee2$(_context2) {
+          while (1) {
+            switch (_context2.prev = _context2.next) {
+              case 0:
+                options = _args2.length > 2 && _args2[2] !== undefined ? _args2[2] : {};
+                (0, _utils.triggerEvent)(element, 'convert');
+                options = Object.assign({}, {
+                  sampleRate: 48000,
+                  type: 'mp3',
+                  workerUrl: workerUrl
+                }, options); // decode audio samples using 48000 as default input sample rate.
+
+                inputSampleRate = options.sampleRate || 48000;
+                _context2.next = 6;
+                return (0, _utils.arrayBufferFromBlob)(audioBlob);
+
+              case 6:
+                audioData = _context2.sent;
+                _context2.next = 9;
+                return (0, _utils.decodeAudioData)(audioData, inputSampleRate);
+
+              case 9:
+                inputPCM = _context2.sent;
+                bitRate = element.bitRate || 64 * 1000; // MP3-specific default bitRate
+                // Until direct to MP3 encoder implemented, record as Opus first then convert as a whole.
+
+                return _context2.abrupt("return", (0, _utils.withWorker)(options.workerUrl, function (worker) {
+                  var CHUNK_SIZE = 8192;
+                  worker.postMessage({
+                    type: 'init',
+                    sampleRate: inputSampleRate,
+                    bitRate: bitRate
+                  }); // send to worker in chunks
+
+                  var offset = 0;
+                  var remain = inputPCM.length;
+
+                  while (remain > 0) {
+                    var length = remain > CHUNK_SIZE ? CHUNK_SIZE : remain; // slice out a chunk into its own ArrayBuffer
+
+                    var chunk = new Float32Array(length);
+                    chunk.set(inputPCM.slice(offset, offset + length), 0);
+                    offset += length;
+                    remain -= length;
+                    worker.postMessage({
+                      type: 'data',
+                      data: chunk.buffer
+                    }, [chunk.buffer]);
+                  } // signal end of data
+
+
+                  worker.postMessage({
+                    type: 'flush'
+                  });
+                }).then(function (blob) {
+                  (0, _utils.triggerEvent)(element, 'converted', {
+                    blob: blob
+                  });
+                  return blob;
+                }).catch(function (err) {
+                  (0, _utils.triggerEvent)(element, 'error', {
+                    error: err
+                  });
+                  throw err;
+                }));
+
+              case 12:
+              case "end":
+                return _context2.stop();
+            }
+          }
+        }, _callee2);
+      }));
+
+      function convert(_x3, _x4) {
+        return _convert.apply(this, arguments);
+      }
+
+      return convert;
+    }()
+  }, {
+    key: "_recordOpus",
+    value: function () {
+      var _recordOpus2 = _asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee3(element, stream, options) {
+        var bitRate, mediaRecorderOptions, recorder;
+        return regeneratorRuntime.wrap(function _callee3$(_context3) {
+          while (1) {
+            switch (_context3.prev = _context3.next) {
+              case 0:
+                bitRate = element.bitRate || 32 * 1000; // Uses 32k as default bitrate for Opus podcast
+                // Use optional 'MediaRecorder' field of recording call options to override.
+
+                mediaRecorderOptions = Object.assign({}, {
+                  mimeType: 'audio/webm; codecs="opus"',
+                  audioBitsPerSecond: bitRate
+                }, options.MediaRecorder); // MediaRecorder instance had issues when reused.
+                // So each recording session creates a new instance internally.
+
+                recorder = new MediaRecorder(stream, mediaRecorderOptions); // Stop event is used to stop recording.
+
+                element.addEventListener('stop', function (_ref) {
+                  var reason = _ref.detail.reason;
+
+                  if (!recorder || recorder.state !== 'recording') {
+                    return;
+                  }
+
+                  recorder.stop();
+                }, {
+                  once: true
+                }); // Time-sliced blobs from MediaRecorders are not guaranteed to honor logical boundaries.
+                // So blobs are merged to form a proper opus packets in webm container is returned when stopped.
+                // Override optional 'timeslice' recording option to change timeslice duration (default 20ms).
+                // Note that resulting audio file's duration field is not set correctly on Chrome.
+
+                return _context3.abrupt("return", new Promise(function (resolve, reject) {
+                  var blobs = [];
+
+                  recorder.ondataavailable = function (e) {
+                    if (typeof e.data !== "undefined" && e.data.size > 0) {
+                      blobs.push(e.data);
+                    }
+                  };
+
+                  recorder.onstop = function (e) {
+                    if (blobs.length > 0) {
+                      resolve(new Blob(blobs, {
+                        type: blobs[0].type
+                      }));
+                    } else {
+                      resolve(null);
+                    }
+                  };
+
+                  recorder.onerror = function (e) {
+                    reject(e.error);
+                  };
+
+                  recorder.start(options.timeslice);
+                }));
+
+              case 5:
+              case "end":
+                return _context3.stop();
+            }
+          }
+        }, _callee3);
+      }));
+
+      function _recordOpus(_x5, _x6, _x7) {
+        return _recordOpus2.apply(this, arguments);
+      }
+
+      return _recordOpus;
+    }()
+  }, {
+    key: "_recordMP3",
+    value: function () {
+      var _recordMP = _asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee4(element, stream, options) {
+        var _this = this;
+
+        var audioSettings, sampleRate;
+        return regeneratorRuntime.wrap(function _callee4$(_context4) {
+          while (1) {
+            switch (_context4.prev = _context4.next) {
+              case 0:
+                audioSettings = stream.getAudioTracks()[0].getSettings();
+                sampleRate = audioSettings.sampleRate || 48000;
+                return _context4.abrupt("return", (0, _utils.withWorker)(options.workerUrl, function (worker) {
+                  var bitRate = element.bitRate || 64 * 1024; // MP3-specific default bitrate for podcasting
+
+                  worker.postMessage({
+                    type: 'init',
+                    sampleRate: sampleRate,
+                    bitRate: bitRate
+                  });
+
+                  _this._processStream(element, stream, function (samples) {
+                    worker.postMessage({
+                      type: 'data',
+                      data: samples.buffer
+                    }, [samples.buffer]);
+                  });
+
+                  element.addEventListener("stop", function (e) {
+                    // signal end of data
+                    worker.postMessage({
+                      type: 'flush'
+                    });
+                  });
+                }));
+
+              case 3:
+              case "end":
+                return _context4.stop();
+            }
+          }
+        }, _callee4);
+      }));
+
+      function _recordMP3(_x8, _x9, _x10) {
+        return _recordMP.apply(this, arguments);
+      }
+
+      return _recordMP3;
+    }()
+  }, {
+    key: "_processStream",
+    value: function () {
+      var _processStream2 = _asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee5(element, stream, processor) {
+        var audioContext, sourceNode, processorNode;
+        return regeneratorRuntime.wrap(function _callee5$(_context5) {
+          while (1) {
+            switch (_context5.prev = _context5.next) {
+              case 0:
+                audioContext = new AudioContext();
+                sourceNode = audioContext.createMediaStreamSource(stream);
+                processorNode = audioContext.createScriptProcessor(0, 1, 1);
+
+                processorNode.onaudioprocess = function (e) {
+                  return processor((0, _utils.getChannelData)(e.inputBuffer, 0));
+                };
+
+                sourceNode.connect(processorNode);
+                processorNode.connect(audioContext.destination);
+                element.addEventListener("stop", function (e) {
+                  sourceNode.disconnect();
+                });
+
+              case 7:
+              case "end":
+                return _context5.stop();
+            }
+          }
+        }, _callee5);
+      }));
+
+      function _processStream(_x11, _x12, _x13) {
+        return _processStream2.apply(this, arguments);
+      }
+
+      return _processStream;
+    }()
+  }]);
+
+  return TalkLocalService;
+}();
+
+exports.TalkLocalService = TalkLocalService;
+var _default = TalkLocalService;
+exports.default = _default;
+},{"./utils":"FOZT"}],"iZjX":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = exports.TalkRemoteService = void 0;
+
+var _utils = require("./utils");
+
+function asyncGeneratorStep(gen, resolve, reject, _next, _throw, key, arg) { try { var info = gen[key](arg); var value = info.value; } catch (error) { reject(error); return; } if (info.done) { resolve(value); } else { Promise.resolve(value).then(_next, _throw); } }
+
+function _asyncToGenerator(fn) { return function () { var self = this, args = arguments; return new Promise(function (resolve, reject) { var gen = fn.apply(self, args); function _next(value) { asyncGeneratorStep(gen, resolve, reject, _next, _throw, "next", value); } function _throw(err) { asyncGeneratorStep(gen, resolve, reject, _next, _throw, "throw", err); } _next(undefined); }); }; }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+function _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
+
+function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); return Constructor; }
+
+var TalkRemoteService = /*#__PURE__*/function () {
+  function TalkRemoteService() {
+    _classCallCheck(this, TalkRemoteService);
+  }
+
+  _createClass(TalkRemoteService, [{
+    key: "createServiceFrame",
+    value: function createServiceFrame(element) {
+      var host = element.host,
+          role = element.role;
+      var iframe = document.createElement('iframe');
+      iframe.src = host;
+      iframe.name = "talk-service";
+      iframe.allow = "microphone";
+
+      if (role === 'iframer') {
+        iframe.width = 0;
+        iframe.height = 0;
+        iframe.style.display = 'none';
+      } else {
+        iframe.width = 500;
+        iframe.height = 500;
+        iframe.style.border = 'none';
+      }
+
+      return iframe;
+    }
+  }, {
+    key: "record",
+    value: function () {
+      var _record = _asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee(element, options) {
+        return regeneratorRuntime.wrap(function _callee$(_context) {
+          while (1) {
+            switch (_context.prev = _context.next) {
+              case 0:
+                if (element.iframe) {
+                  _context.next = 2;
+                  break;
+                }
+
+                throw new Error('service frame to host failed to open');
+
+              case 2:
+                return _context.abrupt("return", new Promise(function (resolve, reject) {
+                  var cleanup = receiveMessageFromFrame(element.iframe, function (e) {
+                    console.log("iframer received", e);
+
+                    if (e.data.type === 'recorded') {
+                      (0, _utils.triggerEvent)(element, 'recorded', {
+                        blob: e.data.blob
+                      });
+                      resolve(e.data.blob);
+                      cleanup();
+                    } else if (e.data.type === 'error') {
+                      var error = e.data.error;
+                      (0, _utils.triggerEvent)(element, 'error', {
+                        error: error
+                      });
+                      reject(error);
+                      cleanup();
+                    } // replyToMessage({ type: 'reply' }, e);
+
+                  });
+                  sendMessageToFrame(element.iframe, {
+                    type: 'record',
+                    options: options
+                  });
+                  (0, _utils.triggerEvent)(element, 'record', {});
+                }));
+
+              case 3:
+              case "end":
+                return _context.stop();
+            }
+          }
+        }, _callee);
+      }));
+
+      function record(_x, _x2) {
+        return _record.apply(this, arguments);
+      }
+
+      return record;
+    }()
+  }, {
+    key: "stop",
+    value: function stop(element, reason) {
+      (0, _utils.triggerEvent)(element, 'stop', {
+        reason: reason
+      });
+
+      if (element.iframe) {
+        receiveMessageFromFrame(element.iframe, function (e) {
+          console.log("iframer received", e); // replyToMessage({ type: 'reply' }, e);
+        }, {
+          once: true
+        });
+        sendMessageToFrame(element.iframe, {
+          type: 'stop'
+        });
+      }
+    }
+  }, {
+    key: "convert",
+    value: function () {
+      var _convert = _asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee2(element, audioBlob) {
+        var options,
+            _args2 = arguments;
+        return regeneratorRuntime.wrap(function _callee2$(_context2) {
+          while (1) {
+            switch (_context2.prev = _context2.next) {
+              case 0:
+                options = _args2.length > 2 && _args2[2] !== undefined ? _args2[2] : {};
+
+              case 1:
+              case "end":
+                return _context2.stop();
+            }
+          }
+        }, _callee2);
+      }));
+
+      function convert(_x3, _x4) {
+        return _convert.apply(this, arguments);
+      }
+
+      return convert;
+    }()
+  }]);
+
+  return TalkRemoteService;
+}();
+
+exports.TalkRemoteService = TalkRemoteService;
+
+function referrerOrigin() {
+  if (!document.referrer) {
+    return null;
+  }
+
+  var url = new URL(document.referrer);
+  return "".concat(url.protocol, "//").concat(url.host);
+}
+
+function replyToMessage(reply, msg) {
+  if (!reply) {
+    throw new Error('reply is null');
+  }
+
+  if (!msg || !msg.source) {
+    throw new Error('message to reply to or its source is null');
+  }
+
+  msg.source.postMessage(reply, msg.origin);
+}
+
+function sendMessageToFrame(frame, msg) {
+  if (!frame || !frame.src) {
+    throw new Error('frame or frame.src is null');
+  }
+
+  var frameURL = new URL(frame.src);
+  var frameOrigin = "".concat(frameURL.protocol, "//").concat(frameURL.host);
+  frame.contentWindow.postMessage(msg, frameOrigin);
+}
+
+function receiveMessageFromFrame(frame, receiver) {
+  if (!frame || !frame.src) {
+    throw new Error('frame or frame.src is null');
+  }
+
+  var frameURL = new URL(frame.src);
+  var frameOrigin = "".concat(frameURL.protocol, "//").concat(frameURL.host);
+
+  var listener = function listener(e) {
+    return e.origin === frameOrigin && receiver(e);
+  };
+
+  window.addEventListener('message', listener);
+  return function () {
+    window.removeEventListener('message', listener);
+  };
+}
+
+var _default = TalkRemoteService;
+exports.default = _default;
+},{"./utils":"FOZT"}],"TnXr":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
 exports.TalkRecorder = void 0;
+
+var _TalkLocalService = require("./TalkLocalService");
+
+var _TalkRemoteService = require("./TalkRemoteService");
 
 var _utils = require("./utils");
 
@@ -968,19 +1737,6 @@ function _getPrototypeOf(o) { _getPrototypeOf = Object.setPrototypeOf ? Object.g
 
 function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
 
-var AudioContext = window.AudioContext || window.webkitAudioContext;
-var OfflineAudioContext = window.OfflineAudioContext || window.webkitOfflineAudioContext; // HACK: determine default worker URL using script tag's src attribute if available.
-
-var workerUrl = "./lamemp3/worker.js";
-
-if (document.currentScript && document.currentScript.src) {
-  var scriptUrl = new URL(document.currentScript.src, document.baseURI).toString();
-  var scriptBaseUrl = scriptUrl.substr(0, scriptUrl.lastIndexOf('/'));
-  workerUrl = "".concat(scriptBaseUrl, "/lamemp3/worker.js");
-}
-
-console.log('default workerUrl', workerUrl);
-
 var TalkRecorder = /*#__PURE__*/function (_HTMLElement) {
   _inherits(TalkRecorder, _HTMLElement);
 
@@ -1000,14 +1756,77 @@ var TalkRecorder = /*#__PURE__*/function (_HTMLElement) {
   _createClass(TalkRecorder, [{
     key: "attributeChangedCallback",
     value: function attributeChangedCallback(name, oldValue, newValue) {
-      if (name === 'bitrate') {
-        this.bitRate = (0, _utils.friendlyFloat)(newValue, oldValue);
+      switch (name) {
+        case 'bitrate':
+          this.bitRate = (0, _utils.friendlyFloat)(newValue, oldValue);
+          break;
+
+        case 'host':
+          this.host = newValue;
+          break;
+
+        case 'role':
+          console.log('role', {
+            oldValue: oldValue,
+            newValue: newValue
+          });
+
+          if (typeof newValue === 'string') {
+            this.role = newValue.trim().toLowerCase();
+          }
+
+          break;
+
+        default:
+          break;
       }
     } // Callback to notify custom element has been inserted into document.
 
   }, {
     key: "connectedCallback",
-    value: function connectedCallback() {} // Callback to notify custom element has been removed from document.
+    value: function connectedCallback() {
+      var _this = this;
+
+      if (this.host) {
+        this.service = new _TalkRemoteService.TalkRemoteService();
+        this.iframe = this.service.createServiceFrame(this);
+        this.appendChild(this.iframe);
+      } else {
+        this.service = new _TalkLocalService.TalkLocalService();
+
+        if (this.role === 'iframed') {
+          var iframerOrigin;
+          var cleanup = receiveMessageFromParent(function (e) {
+            iframerOrigin = e.origin;
+
+            switch (e.data.type) {
+              case 'record':
+                _this.record(e.data.options);
+
+                break;
+
+              case 'stop':
+                _this.stop(e.data.reason);
+
+                break;
+
+              default:
+                console.error('unknown message type', e.data);
+            }
+          });
+          this.addEventListener('recorded', function (e) {
+            var blob = e.detail.blob;
+
+            if (blob && iframerOrigin) {
+              parent.postMessage({
+                type: 'recorded',
+                blob: blob
+              }, iframerOrigin);
+            }
+          });
+        }
+      }
+    } // Callback to notify custom element has been removed from document.
 
   }, {
     key: "disconnectedCallback",
@@ -1025,114 +1844,33 @@ var TalkRecorder = /*#__PURE__*/function (_HTMLElement) {
     key: "record",
     value: function () {
       var _record = _asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee() {
-        var _this = this;
-
         var options,
-            getUserMediaOptions,
-            blob,
             _args = arguments;
         return regeneratorRuntime.wrap(function _callee$(_context) {
           while (1) {
             switch (_context.prev = _context.next) {
               case 0:
                 options = _args.length > 0 && _args[0] !== undefined ? _args[0] : {};
+                options = Object.assign({}, {
+                  type: 'opus'
+                }, options);
 
-                if (this.isSupported()) {
-                  _context.next = 3;
+                if (!(options.type !== 'opus' && options.type !== 'mp3')) {
+                  _context.next = 4;
                   break;
                 }
 
-                throw new Error('This browser does not support media recording');
+                throw new Error('unknown recording type');
 
-              case 3:
-                if (!this.stream) {
-                  _context.next = 5;
-                  break;
-                }
-
-                throw new Error('already recording');
+              case 4:
+                return _context.abrupt("return", this.service.record(this, options));
 
               case 5:
-                (0, _utils.triggerEvent)(this, 'record');
-                options = Object.assign({}, {
-                  type: 'opus',
-                  timeslice: 20,
-                  workerUrl: workerUrl
-                }, options); // Use optional 'getUserMedia' field of recording call options to override.
-
-                getUserMediaOptions = Object.assign({}, {
-                  audio: true,
-                  video: false,
-                  channelCount: 1,
-                  autoGainControl: true,
-                  echoCancellation: true,
-                  noiseSuppression: true
-                }, options.getUserMedia); // start capturing audio
-
-                _context.next = 10;
-                return navigator.mediaDevices.getUserMedia(getUserMediaOptions);
-
-              case 10:
-                this.stream = _context.sent;
-                this.addEventListener('stop', function (e) {
-                  _this.stream.getTracks().forEach(function (track) {
-                    return track.stop();
-                  });
-
-                  _this.stream = null;
-                }, {
-                  once: true
-                });
-                (0, _utils.triggerEvent)(this, 'stream', {
-                  stream: this.stream
-                });
-                _context.prev = 13;
-
-                if (!(options.type === 'opus')) {
-                  _context.next = 20;
-                  break;
-                }
-
-                _context.next = 17;
-                return this._recordOpus(this.stream, options);
-
-              case 17:
-                blob = _context.sent;
-                _context.next = 24;
-                break;
-
-              case 20:
-                if (!(options.type === 'mp3')) {
-                  _context.next = 24;
-                  break;
-                }
-
-                _context.next = 23;
-                return this._recordMP3(this.stream, options);
-
-              case 23:
-                blob = _context.sent;
-
-              case 24:
-                (0, _utils.triggerEvent)(this, 'recorded', {
-                  blob: blob
-                });
-                return _context.abrupt("return", blob);
-
-              case 28:
-                _context.prev = 28;
-                _context.t0 = _context["catch"](13);
-                (0, _utils.triggerEvent)(this, 'error', {
-                  error: _context.t0
-                });
-                throw _context.t0;
-
-              case 32:
               case "end":
                 return _context.stop();
             }
           }
-        }, _callee, this, [[13, 28]]);
+        }, _callee, this);
       }));
 
       function record() {
@@ -1152,9 +1890,7 @@ var TalkRecorder = /*#__PURE__*/function (_HTMLElement) {
             switch (_context2.prev = _context2.next) {
               case 0:
                 reason = _args2.length > 0 && _args2[0] !== undefined ? _args2[0] : 'finish';
-                (0, _utils.triggerEvent)(this, 'stop', {
-                  reason: reason
-                });
+                return _context2.abrupt("return", this.service.stop(this, reason));
 
               case 2:
               case "end":
@@ -1174,81 +1910,16 @@ var TalkRecorder = /*#__PURE__*/function (_HTMLElement) {
     key: "convert",
     value: function () {
       var _convert = _asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee3(audioBlob) {
-        var _this2 = this;
-
         var options,
-            inputSampleRate,
-            audioData,
-            inputPCM,
-            bitRate,
             _args3 = arguments;
         return regeneratorRuntime.wrap(function _callee3$(_context3) {
           while (1) {
             switch (_context3.prev = _context3.next) {
               case 0:
                 options = _args3.length > 1 && _args3[1] !== undefined ? _args3[1] : {};
-                (0, _utils.triggerEvent)(this, 'convert');
-                options = Object.assign({}, {
-                  sampleRate: 48000,
-                  type: 'mp3',
-                  workerUrl: workerUrl
-                }, options); // decode audio samples using 48000 as default input sample rate.
+                return _context3.abrupt("return", this.service.convert(this, audioBlob, options));
 
-                inputSampleRate = options.sampleRate || 48000;
-                _context3.next = 6;
-                return arrayBufferFromBlob(audioBlob);
-
-              case 6:
-                audioData = _context3.sent;
-                _context3.next = 9;
-                return decodeAudioData(audioData, inputSampleRate);
-
-              case 9:
-                inputPCM = _context3.sent;
-                bitRate = this.bitRate || 64 * 1000; // MP3-specific default bitRate
-                // Until direct to MP3 encoder implemented, record as Opus first then convert as a whole.
-
-                return _context3.abrupt("return", withWorker(options.workerUrl, function (worker) {
-                  var CHUNK_SIZE = 8192;
-                  worker.postMessage({
-                    type: 'init',
-                    sampleRate: inputSampleRate,
-                    bitRate: bitRate
-                  }); // send to worker in chunks
-
-                  var offset = 0;
-                  var remain = inputPCM.length;
-
-                  while (remain > 0) {
-                    var length = remain > CHUNK_SIZE ? CHUNK_SIZE : remain; // slice out a chunk into its own ArrayBuffer
-
-                    var chunk = new Float32Array(length);
-                    chunk.set(inputPCM.slice(offset, offset + length), 0);
-                    offset += length;
-                    remain -= length;
-                    worker.postMessage({
-                      type: 'data',
-                      data: chunk.buffer
-                    }, [chunk.buffer]);
-                  } // signal end of data
-
-
-                  worker.postMessage({
-                    type: 'flush'
-                  });
-                }).then(function (blob) {
-                  (0, _utils.triggerEvent)(_this2, 'converted', {
-                    blob: blob
-                  });
-                  return blob;
-                }).catch(function (err) {
-                  (0, _utils.triggerEvent)(_this2, 'error', {
-                    error: err
-                  });
-                  throw err;
-                }));
-
-              case 12:
+              case 2:
               case "end":
                 return _context3.stop();
             }
@@ -1262,297 +1933,26 @@ var TalkRecorder = /*#__PURE__*/function (_HTMLElement) {
 
       return convert;
     }()
-  }, {
-    key: "_recordOpus",
-    value: function () {
-      var _recordOpus2 = _asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee4(stream, options) {
-        var bitRate, mediaRecorderOptions, recorder;
-        return regeneratorRuntime.wrap(function _callee4$(_context4) {
-          while (1) {
-            switch (_context4.prev = _context4.next) {
-              case 0:
-                bitRate = this.bitRate || 32 * 1000; // Uses 32k as default bitrate for Opus podcast
-                // Use optional 'MediaRecorder' field of recording call options to override.
-
-                mediaRecorderOptions = Object.assign({}, {
-                  mimeType: 'audio/webm; codecs="opus"',
-                  audioBitsPerSecond: bitRate
-                }, options.MediaRecorder); // MediaRecorder instance had issues when reused.
-                // So each recording session creates a new instance internally.
-
-                recorder = new MediaRecorder(stream, mediaRecorderOptions); // Stop event is used to stop recording.
-
-                this.addEventListener('stop', function (_ref) {
-                  var reason = _ref.detail.reason;
-
-                  if (!recorder || recorder.state !== 'recording') {
-                    return;
-                  }
-
-                  recorder.stop();
-                }, {
-                  once: true
-                }); // Time-sliced blobs from MediaRecorders are not guaranteed to honor logical boundaries.
-                // So blobs are merged to form a proper opus packets in webm container is returned when stopped.
-                // Override optional 'timeslice' recording option to change timeslice duration (default 20ms).
-                // Note that resulting audio file's duration field is not set correctly on Chrome.
-
-                return _context4.abrupt("return", new Promise(function (resolve, reject) {
-                  var blobs = [];
-
-                  recorder.ondataavailable = function (e) {
-                    if (typeof e.data !== "undefined" && e.data.size > 0) {
-                      blobs.push(e.data);
-                    }
-                  };
-
-                  recorder.onstop = function (e) {
-                    if (blobs.length > 0) {
-                      resolve(new Blob(blobs, {
-                        type: blobs[0].type
-                      }));
-                    } else {
-                      resolve(null);
-                    }
-                  };
-
-                  recorder.onerror = function (e) {
-                    reject(e.error);
-                  };
-
-                  recorder.start(options.timeslice);
-                }));
-
-              case 5:
-              case "end":
-                return _context4.stop();
-            }
-          }
-        }, _callee4, this);
-      }));
-
-      function _recordOpus(_x2, _x3) {
-        return _recordOpus2.apply(this, arguments);
-      }
-
-      return _recordOpus;
-    }()
-  }, {
-    key: "_recordMP3",
-    value: function () {
-      var _recordMP = _asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee5(stream, options) {
-        var _this3 = this;
-
-        var sampleRate;
-        return regeneratorRuntime.wrap(function _callee5$(_context5) {
-          while (1) {
-            switch (_context5.prev = _context5.next) {
-              case 0:
-                sampleRate = stream.getAudioTracks()[0].getSettings().sampleRate;
-                return _context5.abrupt("return", withWorker(options.workerUrl, function (worker) {
-                  var bitRate = _this3.bitRate || 64 * 1024; // MP3-specific default bitrate for podcasting
-
-                  worker.postMessage({
-                    type: 'init',
-                    sampleRate: sampleRate,
-                    bitRate: bitRate
-                  });
-
-                  _this3._processStream(stream, function (samples) {
-                    worker.postMessage({
-                      type: 'data',
-                      data: samples.buffer
-                    }, [samples.buffer]);
-                  });
-
-                  _this3.addEventListener("stop", function (e) {
-                    // signal end of data
-                    worker.postMessage({
-                      type: 'flush'
-                    });
-                  });
-                }));
-
-              case 2:
-              case "end":
-                return _context5.stop();
-            }
-          }
-        }, _callee5);
-      }));
-
-      function _recordMP3(_x4, _x5) {
-        return _recordMP.apply(this, arguments);
-      }
-
-      return _recordMP3;
-    }()
-  }, {
-    key: "_processStream",
-    value: function () {
-      var _processStream2 = _asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee6(stream, processor) {
-        var audioContext, sourceNode, processorNode;
-        return regeneratorRuntime.wrap(function _callee6$(_context6) {
-          while (1) {
-            switch (_context6.prev = _context6.next) {
-              case 0:
-                audioContext = new AudioContext();
-                sourceNode = audioContext.createMediaStreamSource(stream);
-                processorNode = audioContext.createScriptProcessor(0, 1, 1);
-
-                processorNode.onaudioprocess = function (e) {
-                  return processor((0, _utils.getChannelData)(e.inputBuffer, 0));
-                };
-
-                sourceNode.connect(processorNode);
-                processorNode.connect(audioContext.destination);
-                this.addEventListener("stop", function (e) {
-                  sourceNode.disconnect();
-                });
-
-              case 7:
-              case "end":
-                return _context6.stop();
-            }
-          }
-        }, _callee6, this);
-      }));
-
-      function _processStream(_x6, _x7) {
-        return _processStream2.apply(this, arguments);
-      }
-
-      return _processStream;
-    }()
   }]);
 
   return TalkRecorder;
 }( /*#__PURE__*/_wrapNativeSuper(HTMLElement));
-/**
- * Reads all of blob data into an ArrayBuffer.
- * 
- * @param {Blob} blob 
- * 
- * @result {ArrayBuffer}
- */
-
 
 exports.TalkRecorder = TalkRecorder;
 
-_defineProperty(TalkRecorder, "observedAttributes", ["bitrate"]);
+_defineProperty(TalkRecorder, "observedAttributes", ["bitrate", "host", "role"]);
 
-function arrayBufferFromBlob(_x8) {
-  return _arrayBufferFromBlob.apply(this, arguments);
+function receiveMessageFromParent(receiver) {
+  var listener = function listener(e) {
+    return e.source === parent && receiver(e);
+  };
+
+  window.addEventListener('message', listener);
+  return function () {
+    window.removeEventListener('message', listener);
+  };
 }
-/**
- * Decode compressed audio data into uncompressed (PCM) audio data.
- * 
- * @param {ArrayBuffer} audioData
- * 
- * @result {Float32Array}
- */
-
-
-function _arrayBufferFromBlob() {
-  _arrayBufferFromBlob = _asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee7(blob) {
-    return regeneratorRuntime.wrap(function _callee7$(_context7) {
-      while (1) {
-        switch (_context7.prev = _context7.next) {
-          case 0:
-            return _context7.abrupt("return", new Promise(function (resolve, reject) {
-              var reader = new FileReader();
-              reader.readAsArrayBuffer(blob);
-
-              reader.onload = function () {
-                return resolve(reader.result);
-              };
-
-              reader.onerror = function () {
-                return reject(reader.error);
-              };
-            }));
-
-          case 1:
-          case "end":
-            return _context7.stop();
-        }
-      }
-    }, _callee7);
-  }));
-  return _arrayBufferFromBlob.apply(this, arguments);
-}
-
-function decodeAudioData(_x9) {
-  return _decodeAudioData.apply(this, arguments);
-}
-
-function _decodeAudioData() {
-  _decodeAudioData = _asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee8(audioData) {
-    var sampleRate,
-        audioCtx,
-        audioBuffer,
-        _args8 = arguments;
-    return regeneratorRuntime.wrap(function _callee8$(_context8) {
-      while (1) {
-        switch (_context8.prev = _context8.next) {
-          case 0:
-            sampleRate = _args8.length > 1 && _args8[1] !== undefined ? _args8[1] : 48000;
-            // OfflineAudioContext is more appropriate here but plain AudioContext
-            // is used to avoid potential outstanding unreleased memory issue.
-            audioCtx = new AudioContext({
-              sampleRate: sampleRate
-            });
-            _context8.next = 4;
-            return audioCtx.decodeAudioData(audioData);
-
-          case 4:
-            audioBuffer = _context8.sent;
-            return _context8.abrupt("return", (0, _utils.getChannelData)(audioBuffer, 0));
-
-          case 6:
-          case "end":
-            return _context8.stop();
-        }
-      }
-    }, _callee8);
-  }));
-  return _decodeAudioData.apply(this, arguments);
-}
-
-function withWorker(workerUrl, workHandler) {
-  // Needs a Web Worker and WebAssembly supporting browser
-  if (!window.Worker || !window.WebAssembly) {
-    throw new Error('Worker and WebAssembly features not available');
-  }
-
-  return new Promise(function (resolve, reject) {
-    var worker;
-
-    if (new URL(workerUrl).host === window.location.host) {
-      worker = new Worker(workerUrl);
-    } else {
-      worker = new Worker(URL.createObjectURL(new Blob(["importScripts(\"".concat(workerUrl, "\");")])));
-    }
-
-    worker.onmessage = function (msg) {
-      switch (msg.data.type) {
-        case 'ready':
-          workHandler(worker);
-          break;
-
-        case 'done':
-          worker.terminate();
-          resolve(msg.data.blob);
-          break;
-      }
-    };
-
-    worker.onerror = function (err) {
-      reject(err);
-    };
-  });
-}
-},{"./utils":"FOZT"}],"q5gj":[function(require,module,exports) {
+},{"./TalkLocalService":"uZlT","./TalkRemoteService":"iZjX","./utils":"FOZT"}],"q5gj":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {

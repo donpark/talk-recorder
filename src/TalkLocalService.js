@@ -12,11 +12,14 @@ const getUserMedia = navigator.mediaDevices ? navigator.mediaDevices.getUserMedi
 // HACK: determine default worker URL using script tag's src attribute if available.
 let workerUrl = "./lamemp3/worker.js";
 if (document.currentScript && document.currentScript.src) {
+    console.log('determine workerUrl', {
+        currentScript: document.currentScript,
+        currentScriptSrc: document.currentScript.src,
+    })
     const scriptUrl = new URL(document.currentScript.src, document.baseURI).toString();
     const scriptBaseUrl = scriptUrl.substr(0, scriptUrl.lastIndexOf('/'));
     workerUrl = `${scriptBaseUrl}/lamemp3/worker.js`;
 }
-// console.log('default workerUrl', workerUrl);
 
 export class TalkLocalService {
     constructor() {
@@ -32,6 +35,12 @@ export class TalkLocalService {
         if (!getUserMedia && !element.host && window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
             throw new Error('HTTPS is required for media recording.');
         }
+
+        options = Object.assign({
+            type: 'opus',
+            timeslice: 20,
+            workerUrl,
+        }, options)
 
         // Use optional 'getUserMedia' field of recording call options to override.
         const getUserMediaOptions = Object.assign({}, {

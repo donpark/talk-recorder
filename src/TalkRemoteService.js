@@ -100,11 +100,7 @@ function receiveMessageFromFrame(frame, receiver) {
     const frameURL = new URL(frame.src);
     const frameOrigin = `${frameURL.protocol}//${frameURL.host}`;
 
-    const listener = e => {
-        if (e.origin === frameOrigin) {
-            receiver(e);
-        }
-    };
+    const listener = e => e.origin === frameOrigin && receiver(e);
     window.addEventListener('message', listener);
     return () => {
         window.removeEventListener('message', listener);
