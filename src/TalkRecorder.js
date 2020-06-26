@@ -211,7 +211,8 @@ export class TalkRecorder extends HTMLElement {
     }
 
     async _recordMP3(stream, options) {
-        const sampleRate = stream.getAudioTracks()[0].getSettings().sampleRate;
+        const audioSettings = stream.getAudioTracks()[0].getSettings();
+        const sampleRate = audioSettings.sampleRate || 48000;
         return withWorker(options.workerUrl, (worker) => {
             const bitRate = this.bitRate || (64 * 1024); // MP3-specific default bitrate for podcasting
             worker.postMessage({

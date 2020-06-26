@@ -1343,12 +1343,13 @@ var TalkRecorder = /*#__PURE__*/function (_HTMLElement) {
       var _recordMP = _asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee5(stream, options) {
         var _this3 = this;
 
-        var sampleRate;
+        var audioSettings, sampleRate;
         return regeneratorRuntime.wrap(function _callee5$(_context5) {
           while (1) {
             switch (_context5.prev = _context5.next) {
               case 0:
-                sampleRate = stream.getAudioTracks()[0].getSettings().sampleRate;
+                audioSettings = stream.getAudioTracks()[0].getSettings();
+                sampleRate = audioSettings.sampleRate || 48000;
                 return _context5.abrupt("return", withWorker(options.workerUrl, function (worker) {
                   var bitRate = _this3.bitRate || 64 * 1024; // MP3-specific default bitrate for podcasting
 
@@ -1373,7 +1374,7 @@ var TalkRecorder = /*#__PURE__*/function (_HTMLElement) {
                   });
                 }));
 
-              case 2:
+              case 3:
               case "end":
                 return _context5.stop();
             }
