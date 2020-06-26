@@ -1,9 +1,15 @@
 <html>
-    <head> </head>
+    <head>
+        <title>iframed-headless</title>
+    </head>
     <body>
         <script type="text/javascript" src="../recorder.js"></script>
         <talk-recorder id="recorder" bitRate="64k"></talk-recorder>
         <script type="text/javascript">
+            window.addEventListener("message", (e) => {
+                console.log("iframed received", e);
+                parent.postMessage({ type: "iframed.hello" }, e.origin);
+            });
             function getRecorder(type) {
                 switch (type) {
                     case "new":
@@ -80,7 +86,7 @@
 
             // Displays an audio blob as an audio element.
             function addRecording(audioBlob, label) {
-                const blobURL = URL.createObjectURL(audioBlob);
+                const blobURL = window.URL.createObjectURL(audioBlob);
                 const audioEl = new Audio(blobURL);
                 audioEl.controls = true;
                 Object.assign(audioEl.style, {
@@ -153,7 +159,7 @@
                 recorder.stop();
             }
         </script>
-        <h2>TalkRecorder Demo</h2>
+        <h2>TalkRecorder Demo: iframed</h2>
         <p>Open browser console to see info on recorded blobs</p>
         <div>
             <div>
