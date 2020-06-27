@@ -52,6 +52,10 @@ export class TalkRecorder extends HTMLElement {
                         case 'stop':
                             this.stop(e.data.reason);
                             break;
+                        case 'convert':
+                            console.log('convert requested', e.data);
+                            this.convert(e.data.blob, e.data.options);
+                            break;
                         default:
                             console.error('unknown message type', e.data);
                     }
@@ -61,6 +65,15 @@ export class TalkRecorder extends HTMLElement {
                     if (blob && iframerOrigin) {
                         parent.postMessage({
                             type: 'recorded',
+                            blob,
+                        }, iframerOrigin)
+                    }
+                })
+                this.addEventListener('converted', e => {
+                    const { blob } = e.detail;
+                    if (blob && iframerOrigin) {
+                        parent.postMessage({
+                            type: 'converted',
                             blob,
                         }, iframerOrigin)
                     }
