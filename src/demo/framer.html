@@ -1,8 +1,15 @@
 <html>
-    <head> </head>
+    <head>
+        <title>demo:framer</title>
+    </head>
     <body>
         <script type="text/javascript" src="../recorder.js"></script>
-        <talk-recorder id="recorder" bitRate="64k"></talk-recorder>
+        <talk-recorder
+            id="recorder"
+            bitRate="64k"
+            host="http://localhost:1235/framed.html"
+            role="framer"
+        ></talk-recorder>
         <script type="text/javascript">
             function getRecorder(type) {
                 switch (type) {
@@ -68,6 +75,14 @@
                     { once: true }
                 );
                 recorder.addEventListener(
+                    "converted",
+                    (e) => {
+                        const blob = e.detail.blob;
+                        console.log("converted blob", blob);
+                    },
+                    { once: true }
+                );
+                recorder.addEventListener(
                     "error",
                     (e) => {
                         const error = e.detail.error;
@@ -79,16 +94,28 @@
             }
 
             // Displays an audio blob as an audio element.
-            function addRecording(audioBlob) {
-                const blobURL = URL.createObjectURL(audioBlob);
+            function addRecording(audioBlob, label) {
+                const blobURL = window.URL.createObjectURL(audioBlob);
                 const audioEl = new Audio(blobURL);
                 audioEl.controls = true;
                 Object.assign(audioEl.style, {
-                    display: "block",
+                    display: "inline-block",
                     height: "32px",
                     margin: "5px",
                 });
-                document.getElementById("recordings").appendChild(audioEl);
+
+                const recordingEl = document.createElement("div");
+                Object.assign(recordingEl.style, {
+                    display: "flex",
+                    alignItems: "center",
+                });
+
+                recordingEl.appendChild(audioEl);
+                const labelEl = document.createElement("span");
+                labelEl.textContent = ` ${label}`;
+                recordingEl.appendChild(labelEl);
+
+                document.getElementById("recordings").appendChild(recordingEl);
             }
 
             // Gets or creates an instance of TalkRecorder using:
@@ -100,7 +127,7 @@
             // Shows how to record an Opus blob.
             //
             function recordOpus() {
-                recordPromise(recorder, "opus").then((audioBlob) => addRecording(audioBlob));
+                recordPromise(recorder, "opus").then((audioBlob) => addRecording(audioBlob, "Opus"));
             }
 
             // Shows how to record an MP3 blob.
@@ -109,7 +136,7 @@
             function recordMP3() {
                 recordCB(recorder, "mp3", (err, audioBlob) => {
                     if (audioBlob) {
-                        addRecording(audioBlob);
+                        addRecording(audioBlob, "MP3");
                     }
                 });
             }
@@ -121,7 +148,7 @@
                     (e) => {
                         const opusBlob = e.detail.blob;
                         recorder.convert(opusBlob, { type: "mp3" });
-                        addRecording(opusBlob);
+                        addRecording(opusBlob, "Opus");
                     },
                     { once: true }
                 );
@@ -129,7 +156,7 @@
                     "converted",
                     (e) => {
                         const mp3Blob = e.detail.blob;
-                        addRecording(mp3Blob);
+                        addRecording(mp3Blob, "MP3");
                     },
                     { once: true }
                 );
@@ -141,7 +168,7 @@
                 recorder.stop();
             }
         </script>
-        <h2>TalkRecorder Demo</h2>
+        <h2>TalkRecorder Demo: framer</h2>
         <p>Open browser console to see info on recorded blobs</p>
         <div>
             <div>

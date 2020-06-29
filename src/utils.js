@@ -49,3 +49,49 @@ export function getChannelData(audioBuffer, channel) {
     }
     return channelData;
 }
+
+export async function arrayBufferFromBlob(blob) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsArrayBuffer(blob);
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(reader.error);
+    });
+}
+
+export async function decodeAudioData(audioData, sampleRate = 48000) {
+    // OfflineAudioContext is more appropriate here but plain AudioContext
+    // is used to avoid potential outstanding unreleased memory issue.
+    const audioCtx = new AudioContext({ sampleRate });
+    const audioBuffer = await audioCtx.decodeAudioData(audioData);
+    return getChannelData(audioBuffer, 0);
+}
+
+export async function withWorker(workerUrl, workHandler) {
+    // Needs a Web Worker and WebAssembly supporting browser
+    if (!window.Worker || !window.WebAssembly) {
+        throw new Error('Worker and WebAssembly features not available');
+    }
+    return new Promise((resolve, reject) => {
+        let worker;
+        if (new URL(workerUrl).host === window.location.host) {
+            worker = new Worker(workerUrl);
+        } else {
+            worker = new Worker(URL.createObjectURL(new Blob([`importScripts("${workerUrl}");`])));
+        }
+        worker.onmessage = (msg) => {
+            switch (msg.data.type) {
+                case 'ready':
+                    workHandler(worker);
+                    break;
+                case 'done':
+                    worker.terminate();
+                    resolve(msg.data.blob);
+                    break;
+            }
+        };
+        worker.onerror = (err) => {
+            reject(err);
+        };
+    });
+}

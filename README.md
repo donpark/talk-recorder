@@ -10,25 +10,60 @@
 
 If you need to rebuild or run the demo, be sure to install dependencies with:
 
-    yarn install
-
-or
-
-    npm install
+npm install
 
 ## Demo
 
-Try the [live demo](https://donpark.github.io/talk-recorder/).
+[Live Demo](https://donpark.github.io/talk-recorder/).
 
-To run the demo over localhost, run:
+You can also run demos locally. There are two demos:
 
-    yarn demo
+-   demo:local - recording is done onsite.
+-   demo:framer - recording is done offsite through an iframe.
 
-or
+To run `demo:local`:
 
-    npm run demo
+    npm run demo:local
 
 then open browser to http://localhost:1234
+
+To run `demo:framer`, you also need to run `demo:framed` like this:
+
+    npm run demo:framed
+    npm run demo:framer
+
+then open browser to http://localhost:1234
+
+`demo/framed.html` page runs on port 1235.
+`demo/framer.html` page runs on port 1234.
+
+Both pages has `talk-recorder` custom element but with different `role` values.
+
+### default role
+
+```javascript
+<talk-recorder></talk-recorder>
+```
+
+By default, `talk-recorder` element will record audio locally.
+
+### role='framer'
+
+```javascript
+<talk-recorder role="framer" host="https://example.com/talk-recorder.html"></talk-recorder>
+```
+
+In `framer` role, `talk-recorder` element adds an invisible iframe element pointing to `host`,
+communicating with it to record under the specifiied `host` domain.
+
+### role='framed'
+
+```javascript
+<talk-recorder role="framed" host="https://example.com/talk-recorder.html"></talk-recorder>
+```
+
+In `framed` role, `talk-recorder` element records audio locally like the default role except
+it is acting on-behalf of the parent window.
 
 ## Usage
 

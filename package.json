@@ -1,6 +1,6 @@
 {
     "name": "talk-recorder",
-    "version": "1.1.3",
+    "version": "1.2.0",
     "description": "records audio",
     "browser": "dist/talk-recorder.js",
     "author": "donpark <donpark@docuverse.com>",
@@ -16,7 +16,9 @@
         "build:debug": "parcel build src/recorder.js --target=browser --out-dir dist --out-file talk-recorder.js --no-minify",
         "build:minified": "parcel build src/recorder.js --target=browser --out-dir dist --out-file talk-recorder.min.js",
         "watch": "parcel watch src/recorder.js --target=browser --out-dir dev/talk",
-        "demo": "parcel src/demo/index.html --target=browser --out-dir dev/demo",
+        "demo:local": "parcel src/demo/local.html --target=browser --out-dir dev/local",
+        "demo:framer": "parcel src/demo/framer.html --target=browser --out-dir dev/framer",
+        "demo:framed": "parcel src/demo/framed.html --target=browser --out-dir dev/framed --port=1235",
         "build:node": "parcel build src/index.js --target=node --out-dir lib --no-source-maps",
         "prepublish": "yarn build"
     },
@@ -26,8 +28,8 @@
         "@babel/core": "^7.10.2",
         "@babel/plugin-proposal-optional-chaining": "^7.9.0",
         "parcel-bundler": "^1.12.4",
-        "parcel-plugin-txt": "^1.0.3",
-        "parcel-plugin-static-files-copy": "^2.4.3"
+        "parcel-plugin-static-files-copy": "^2.4.3",
+        "parcel-plugin-txt": "^1.0.3"
     },
     "browserslist": [
         "defaults"
