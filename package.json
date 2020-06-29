@@ -16,9 +16,9 @@
         "build:debug": "parcel build src/recorder.js --target=browser --out-dir dist --out-file talk-recorder.js --no-minify",
         "build:minified": "parcel build src/recorder.js --target=browser --out-dir dist --out-file talk-recorder.min.js",
         "watch": "parcel watch src/recorder.js --target=browser --out-dir dev/talk",
-        "demo": "parcel src/demo/index.html --target=browser --out-dir dev/demo",
-        "iframer": "parcel src/demo/iframer.html --target=browser --out-dir dev/iframer",
-        "iframed": "parcel src/demo/iframed.html --target=browser --out-dir dev/iframed --port=5000",
+        "demo:local": "parcel src/demo/local.html --target=browser --out-dir dev/local",
+        "demo:framer": "parcel src/demo/framer.html --target=browser --out-dir dev/framer",
+        "demo:framed": "parcel src/demo/framed.html --target=browser --out-dir dev/framed --port=5000",
         "build:node": "parcel build src/index.js --target=node --out-dir lib --no-source-maps",
         "prepublish": "yarn build"
     },

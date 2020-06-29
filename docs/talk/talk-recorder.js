@@ -1062,7 +1062,7 @@ function _withWorker() {
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.default = exports.TalkLocalService = void 0;
+exports.TalkLocalService = void 0;
 
 var _utils = require("./utils");
 
@@ -1077,19 +1077,16 @@ function _defineProperties(target, props) { for (var i = 0; i < props.length; i+
 function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); return Constructor; }
 
 var AudioContext = window.AudioContext || window.webkitAudioContext;
-var getUserMedia = navigator.mediaDevices ? navigator.mediaDevices.getUserMedia : navigator.getUserMedia; // HACK: determine default worker URL using script tag's src attribute if available.
+var getUserMedia = navigator.mediaDevices ? navigator.mediaDevices.getUserMedia : navigator.getUserMedia; // HACK: Used to determine full worker URL using script tag's src attribute if available.
 
-var workerUrl = "./lamemp3/worker.js";
+var currentScriptURL = document.currentScript ? new URL(document.currentScript.src, document.baseURI) : null;
 
-if (document.currentScript && document.currentScript.src) {
-  console.log('determine workerUrl', {
-    currentScript: document.currentScript,
-    currentScriptSrc: document.currentScript.src
-  });
-  var scriptUrl = new URL(document.currentScript.src, document.baseURI).toString();
-  var scriptBaseUrl = scriptUrl.substr(0, scriptUrl.lastIndexOf('/'));
-  workerUrl = "".concat(scriptBaseUrl, "/lamemp3/worker.js");
+function getFullScriptUrl(relativeUrl) {
+  return currentScriptURL ? new URL(relativeUrl, currentScriptURL).toString() : relativeUrl;
 }
+
+var workerUrl = getFullScriptUrl("./lamemp3/worker.js");
+console.log('workerUrl', workerUrl);
 
 var TalkLocalService = /*#__PURE__*/function () {
   function TalkLocalService() {
@@ -1481,15 +1478,13 @@ var TalkLocalService = /*#__PURE__*/function () {
 }();
 
 exports.TalkLocalService = TalkLocalService;
-var _default = TalkLocalService;
-exports.default = _default;
 },{"./utils":"FOZT"}],"iZjX":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.default = exports.TalkRemoteService = void 0;
+exports.TalkRemoteService = void 0;
 
 var _utils = require("./utils");
 
@@ -1516,9 +1511,9 @@ var TalkRemoteService = /*#__PURE__*/function () {
       var iframe = document.createElement('iframe');
       iframe.src = host;
       iframe.name = "talk-service";
-      iframe.allow = "microphone";
+      iframe.allow = "microphone; autoplay";
 
-      if (role === 'iframer') {
+      if (role === 'framer') {
         iframe.width = 0;
         iframe.height = 0;
         iframe.style.display = 'none';
@@ -1538,7 +1533,7 @@ var TalkRemoteService = /*#__PURE__*/function () {
           while (1) {
             switch (_context.prev = _context.next) {
               case 0:
-                if (element.iframe) {
+                if (element.iframePort) {
                   _context.next = 2;
                   break;
                 }
@@ -1547,26 +1542,21 @@ var TalkRemoteService = /*#__PURE__*/function () {
 
               case 2:
                 return _context.abrupt("return", new Promise(function (resolve, reject) {
-                  var cleanup = receiveMessageFromFrame(element.iframe, function (e) {
-                    console.log("iframer received", e);
-
-                    if (e.data.type === 'recorded') {
-                      (0, _utils.triggerEvent)(element, 'recorded', {
-                        blob: e.data.blob
-                      });
-                      resolve(e.data.blob);
-                      cleanup();
-                    } else if (e.data.type === 'error') {
-                      var error = e.data.error;
-                      (0, _utils.triggerEvent)(element, 'error', {
-                        error: error
-                      });
-                      reject(error);
-                      cleanup();
-                    } // replyToMessage({ type: 'reply' }, e);
-
+                  element.iframePort.addEventListener('recorded', function (e) {
+                    var msg = e.detail;
+                    (0, _utils.triggerEvent)(element, msg.type, msg);
+                    resolve(msg.blob);
+                  }, {
+                    once: true
                   });
-                  sendMessageToFrame(element.iframe, {
+                  element.iframePort.addEventListener('error', function (e) {
+                    var msg = e.detail;
+                    (0, _utils.triggerEvent)(element, msg.type, msg);
+                    reject(msg.error);
+                  }, {
+                    once: true
+                  });
+                  element.iframePort.postMessage({
                     type: 'record',
                     options: options
                   });
@@ -1594,13 +1584,8 @@ var TalkRemoteService = /*#__PURE__*/function () {
         reason: reason
       });
 
-      if (element.iframe) {
-        receiveMessageFromFrame(element.iframe, function (e) {
-          console.log("iframer received", e); // replyToMessage({ type: 'reply' }, e);
-        }, {
-          once: true
-        });
-        sendMessageToFrame(element.iframe, {
+      if (element.iframePort) {
+        element.iframePort.postMessage({
           type: 'stop'
         });
       }
@@ -1617,7 +1602,38 @@ var TalkRemoteService = /*#__PURE__*/function () {
               case 0:
                 options = _args2.length > 2 && _args2[2] !== undefined ? _args2[2] : {};
 
-              case 1:
+                if (element.iframePort) {
+                  _context2.next = 3;
+                  break;
+                }
+
+                throw new Error('service frame to host failed to open');
+
+              case 3:
+                return _context2.abrupt("return", new Promise(function (resolve, reject) {
+                  element.iframePort.addEventListener('converted', function (e) {
+                    var msg = e.detail;
+                    (0, _utils.triggerEvent)(element, msg.type, msg);
+                    resolve(msg.blob);
+                  }, {
+                    once: true
+                  });
+                  element.iframePort.addEventListener('error', function (e) {
+                    var msg = e.detail;
+                    (0, _utils.triggerEvent)(element, msg.type, msg);
+                    reject(msg.error);
+                  }, {
+                    once: true
+                  });
+                  element.iframePort.postMessage({
+                    type: 'convert',
+                    blob: audioBlob,
+                    options: options
+                  });
+                  (0, _utils.triggerEvent)(element, 'convert', {});
+                }));
+
+              case 4:
               case "end":
                 return _context2.stop();
             }
@@ -1637,59 +1653,197 @@ var TalkRemoteService = /*#__PURE__*/function () {
 }();
 
 exports.TalkRemoteService = TalkRemoteService;
+},{"./utils":"FOZT"}],"z1SI":[function(require,module,exports) {
+"use strict";
 
-function referrerOrigin() {
-  if (!document.referrer) {
-    return null;
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.FramePort = void 0;
+
+function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+function _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
+
+function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); return Constructor; }
+
+function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function"); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, writable: true, configurable: true } }); if (superClass) _setPrototypeOf(subClass, superClass); }
+
+function _createSuper(Derived) { var hasNativeReflectConstruct = _isNativeReflectConstruct(); return function _createSuperInternal() { var Super = _getPrototypeOf(Derived), result; if (hasNativeReflectConstruct) { var NewTarget = _getPrototypeOf(this).constructor; result = Reflect.construct(Super, arguments, NewTarget); } else { result = Super.apply(this, arguments); } return _possibleConstructorReturn(this, result); }; }
+
+function _possibleConstructorReturn(self, call) { if (call && (_typeof(call) === "object" || typeof call === "function")) { return call; } return _assertThisInitialized(self); }
+
+function _assertThisInitialized(self) { if (self === void 0) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return self; }
+
+function _wrapNativeSuper(Class) { var _cache = typeof Map === "function" ? new Map() : undefined; _wrapNativeSuper = function _wrapNativeSuper(Class) { if (Class === null || !_isNativeFunction(Class)) return Class; if (typeof Class !== "function") { throw new TypeError("Super expression must either be null or a function"); } if (typeof _cache !== "undefined") { if (_cache.has(Class)) return _cache.get(Class); _cache.set(Class, Wrapper); } function Wrapper() { return _construct(Class, arguments, _getPrototypeOf(this).constructor); } Wrapper.prototype = Object.create(Class.prototype, { constructor: { value: Wrapper, enumerable: false, writable: true, configurable: true } }); return _setPrototypeOf(Wrapper, Class); }; return _wrapNativeSuper(Class); }
+
+function _construct(Parent, args, Class) { if (_isNativeReflectConstruct()) { _construct = Reflect.construct; } else { _construct = function _construct(Parent, args, Class) { var a = [null]; a.push.apply(a, args); var Constructor = Function.bind.apply(Parent, a); var instance = new Constructor(); if (Class) _setPrototypeOf(instance, Class.prototype); return instance; }; } return _construct.apply(null, arguments); }
+
+function _isNativeReflectConstruct() { if (typeof Reflect === "undefined" || !Reflect.construct) return false; if (Reflect.construct.sham) return false; if (typeof Proxy === "function") return true; try { Date.prototype.toString.call(Reflect.construct(Date, [], function () {})); return true; } catch (e) { return false; } }
+
+function _isNativeFunction(fn) { return Function.toString.call(fn).indexOf("[native code]") !== -1; }
+
+function _setPrototypeOf(o, p) { _setPrototypeOf = Object.setPrototypeOf || function _setPrototypeOf(o, p) { o.__proto__ = p; return o; }; return _setPrototypeOf(o, p); }
+
+function _getPrototypeOf(o) { _getPrototypeOf = Object.setPrototypeOf ? Object.getPrototypeOf : function _getPrototypeOf(o) { return o.__proto__ || Object.getPrototypeOf(o); }; return _getPrototypeOf(o); }
+
+/**
+ * Create port to an iframe element:
+ * 
+ *      const iframePort = new FramePort(iframeEl);
+ * 
+ * Create port to parent window:
+ * 
+ *      const parentPort = new FramePort(window.parent);
+ * 
+ * Post a message:
+ * 
+ *      port.postMessage(msg, [transferables]);
+ * 
+ * Wait for a specific message type:
+ * 
+ *      port.addEventListener('recorded', msg => console.log('recorded blob', msg.blob));
+ * 
+ * Send a request and wait for response:
+ * 
+ *      const response = await port.sendRequest(request, [transferables]);
+ * 
+ * Send a message in response to a request:
+ * 
+ *      if (port.isRequest(msg)) port.sendResponse(msg, response);
+ * 
+ * Send error in response to a request:
+ * 
+ *      if (port.isRequest(msg) && error) port.sendError(msg, error);
+ * 
+ */
+var FramePort = /*#__PURE__*/function (_EventTarget) {
+  _inherits(FramePort, _EventTarget);
+
+  var _super = _createSuper(FramePort);
+
+  function FramePort(frameOrParent) {
+    var _this;
+
+    _classCallCheck(this, FramePort);
+
+    _this = _super.call(this);
+    if (!frameOrParent) throw new Error('null FramePort constructor argument');
+
+    if (frameOrParent instanceof HTMLIFrameElement) {
+      if (!frameOrParent.src) throw new Error('null iframe.src');
+      _this.target = frameOrParent.contentWindow;
+      _this.origin = new URL(frameOrParent.src).origin;
+    } else {
+      if (frameOrParent !== parent) throw new Error("wrong parent");
+      if (frameOrParent === window) throw new Error("not framed");
+      _this.target = frameOrParent;
+      _this.origin = new URL(document.referrer).origin;
+    }
+
+    _this._reqCount = 0;
+    _this._receivers = {};
+
+    _this._listener = function (e) {
+      return e.origin === _this.origin && _this._receiveMessage(e);
+    };
+
+    window.addEventListener('message', _this._listener);
+    return _this;
   }
 
-  var url = new URL(document.referrer);
-  return "".concat(url.protocol, "//").concat(url.host);
-}
+  _createClass(FramePort, [{
+    key: "close",
+    value: function close() {
+      window.removeEventListener("message", this._listener);
+      this.target = null;
+      this._receivers = {};
+      this._listener = null;
+    }
+  }, {
+    key: "postMessage",
+    value: function postMessage(msg, transfers) {
+      if (!msg) throw new Error('null msg');
+      this.target.postMessage(msg, this.origin, transfers);
+    }
+  }, {
+    key: "sendRequest",
+    value: function sendRequest(request, transfers) {
+      var _this2 = this;
 
-function replyToMessage(reply, msg) {
-  if (!reply) {
-    throw new Error('reply is null');
-  }
+      return new Promise(function (resolve, reject) {
+        _this2._registerRequest(request, function (response) {
+          return response.type !== 'error' ? resolve(response) : reject(response.error);
+        });
 
-  if (!msg || !msg.source) {
-    throw new Error('message to reply to or its source is null');
-  }
+        _this2.postMessage(request, transfers);
+      });
+    }
+  }, {
+    key: "isRequest",
+    value: function isRequest(msg) {
+      return '_reqId' in msg;
+    }
+  }, {
+    key: "sendResponse",
+    value: function sendResponse(request, response, transfers) {
+      this._registerResponse(request, response);
 
-  msg.source.postMessage(reply, msg.origin);
-}
+      this.postMessage(response, transfers);
+    }
+  }, {
+    key: "sendError",
+    value: function sendError(request, error) {
+      this.sendResponse(request, {
+        type: 'error',
+        error: error
+      });
+    }
+  }, {
+    key: "_receiveMessage",
+    value: function _receiveMessage(e) {
+      var msg = e.data;
 
-function sendMessageToFrame(frame, msg) {
-  if (!frame || !frame.src) {
-    throw new Error('frame or frame.src is null');
-  }
+      if (!this._dispatchResponse(msg)) {
+        this.dispatchEvent(new CustomEvent(msg.type, {
+          detail: msg
+        }));
+      }
+    }
+  }, {
+    key: "_registerRequest",
+    value: function _registerRequest(msg, receiver) {
+      msg._reqId = ++this._reqCount;
+      this._receivers[msg._reqId] = receiver;
+    }
+  }, {
+    key: "_registerResponse",
+    value: function _registerResponse(request, response) {
+      response._resId = request._reqId;
+    }
+  }, {
+    key: "_dispatchResponse",
+    value: function _dispatchResponse(msg) {
+      var resId = msg._resId;
 
-  var frameURL = new URL(frame.src);
-  var frameOrigin = "".concat(frameURL.protocol, "//").concat(frameURL.host);
-  frame.contentWindow.postMessage(msg, frameOrigin);
-}
+      if (!resId || !this._receivers[resId]) {
+        return false;
+      }
 
-function receiveMessageFromFrame(frame, receiver) {
-  if (!frame || !frame.src) {
-    throw new Error('frame or frame.src is null');
-  }
+      this._receivers[resId](msg);
 
-  var frameURL = new URL(frame.src);
-  var frameOrigin = "".concat(frameURL.protocol, "//").concat(frameURL.host);
+      delete this._receivers[resId];
+      return true;
+    }
+  }]);
 
-  var listener = function listener(e) {
-    return e.origin === frameOrigin && receiver(e);
-  };
+  return FramePort;
+}( /*#__PURE__*/_wrapNativeSuper(EventTarget));
 
-  window.addEventListener('message', listener);
-  return function () {
-    window.removeEventListener('message', listener);
-  };
-}
-
-var _default = TalkRemoteService;
-exports.default = _default;
-},{"./utils":"FOZT"}],"TnXr":[function(require,module,exports) {
+exports.FramePort = FramePort;
+},{}],"TnXr":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -1700,6 +1854,8 @@ exports.TalkRecorder = void 0;
 var _TalkLocalService = require("./TalkLocalService");
 
 var _TalkRemoteService = require("./TalkRemoteService");
+
+var _FramePort = require("./FramePort");
 
 var _utils = require("./utils");
 
@@ -1791,38 +1947,42 @@ var TalkRecorder = /*#__PURE__*/function (_HTMLElement) {
         this.service = new _TalkRemoteService.TalkRemoteService();
         this.iframe = this.service.createServiceFrame(this);
         this.appendChild(this.iframe);
+        this.iframePort = new _FramePort.FramePort(this.iframe);
       } else {
         this.service = new _TalkLocalService.TalkLocalService();
 
-        if (this.role === 'iframed') {
-          var iframerOrigin;
-          var cleanup = receiveMessageFromParent(function (e) {
-            iframerOrigin = e.origin;
+        if (this.role === 'framed' && parent !== window) {
+          this.parentPort = new _FramePort.FramePort(parent);
+          this.parentPort.addEventListener('record', function (e) {
+            var msg = e.detail;
 
-            switch (e.data.type) {
-              case 'record':
-                _this.record(e.data.options);
+            _this.record(msg.options);
+          });
+          this.parentPort.addEventListener('stop', function (e) {
+            var msg = e.detail;
 
-                break;
+            _this.stop(msg.reason);
+          });
+          this.parentPort.addEventListener('convert', function (e) {
+            var msg = e.detail;
 
-              case 'stop':
-                _this.stop(e.data.reason);
-
-                break;
-
-              default:
-                console.error('unknown message type', e.data);
-            }
+            _this.convert(msg.blob, msg.options);
           });
           this.addEventListener('recorded', function (e) {
             var blob = e.detail.blob;
 
-            if (blob && iframerOrigin) {
-              parent.postMessage({
-                type: 'recorded',
-                blob: blob
-              }, iframerOrigin);
-            }
+            _this.parentPort.postMessage({
+              type: 'recorded',
+              blob: blob
+            });
+          });
+          this.addEventListener('converted', function (e) {
+            var blob = e.detail.blob;
+
+            _this.parentPort.postMessage({
+              type: 'converted',
+              blob: blob
+            });
           });
         }
       }
@@ -1941,18 +2101,7 @@ var TalkRecorder = /*#__PURE__*/function (_HTMLElement) {
 exports.TalkRecorder = TalkRecorder;
 
 _defineProperty(TalkRecorder, "observedAttributes", ["bitrate", "host", "role"]);
-
-function receiveMessageFromParent(receiver) {
-  var listener = function listener(e) {
-    return e.source === parent && receiver(e);
-  };
-
-  window.addEventListener('message', listener);
-  return function () {
-    window.removeEventListener('message', listener);
-  };
-}
-},{"./TalkLocalService":"uZlT","./TalkRemoteService":"iZjX","./utils":"FOZT"}],"q5gj":[function(require,module,exports) {
+},{"./TalkLocalService":"uZlT","./TalkRemoteService":"iZjX","./FramePort":"z1SI","./utils":"FOZT"}],"q5gj":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {

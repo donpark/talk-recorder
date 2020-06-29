@@ -1,5 +1,6 @@
 import { TalkLocalService } from "./TalkLocalService";
 import { TalkRemoteService } from "./TalkRemoteService"
+import { FramePort } from "./FramePort";
 import { friendlyFloat } from "./utils";
 
 export class TalkRecorder extends HTMLElement {
@@ -39,46 +40,31 @@ export class TalkRecorder extends HTMLElement {
             this.service = new TalkRemoteService();
             this.iframe = this.service.createServiceFrame(this);
             this.appendChild(this.iframe);
+            this.iframePort = new FramePort(this.iframe);
         } else {
             this.service = new TalkLocalService();
 
-            if (this.role === 'iframed' && parent) {
-                let iframerOrigin;
-                const cleanup = receiveMessageFromParent(e => {
-                    iframerOrigin = e.origin;
-                    switch (e.data.type) {
-                        case 'record':
-                            this.record(e.data.options);
-                            break;
-                        case 'stop':
-                            this.stop(e.data.reason);
-                            break;
-                        case 'convert':
-                            console.log('convert requested', e.data);
-                            this.convert(e.data.blob, e.data.options);
-                            break;
-                        default:
-                            console.error('unknown message type', e.data);
-                    }
-                })
-
+            if (this.role === 'framed' && parent !== window) {
+                this.parentPort = new FramePort(parent);
+                this.parentPort.addEventListener('record', e => {
+                    const msg = e.detail;
+                    this.record(msg.options)
+                });
+                this.parentPort.addEventListener('stop', e => {
+                    const msg = e.detail;
+                    this.stop(msg.reason);
+                });
+                this.parentPort.addEventListener('convert', e => {
+                    const msg = e.detail;
+                    this.convert(msg.blob, msg.options);
+                });
                 this.addEventListener('recorded', e => {
                     const { blob } = e.detail;
-                    if (blob && iframerOrigin) {
-                        parent.postMessage({
-                            type: 'recorded',
-                            blob,
-                        }, iframerOrigin)
-                    }
+                    this.parentPort.postMessage({ type: 'recorded', blob })
                 })
                 this.addEventListener('converted', e => {
                     const { blob } = e.detail;
-                    if (blob && iframerOrigin) {
-                        parent.postMessage({
-                            type: 'converted',
-                            blob,
-                        }, iframerOrigin)
-                    }
+                    this.parentPort.postMessage({ type: 'converted', blob });
                 })
             }
         }
@@ -119,13 +105,5 @@ export class TalkRecorder extends HTMLElement {
 
     async convert(audioBlob, options = {}) {
         return this.service.convert(this, audioBlob, options);
-    }
-}
-
-function receiveMessageFromParent(receiver) {
-    const listener = e => e.source === parent && receiver(e);
-    window.addEventListener('message', listener);
-    return () => {
-        window.removeEventListener('message', listener);
     }
 }

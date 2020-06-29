@@ -221,5 +221,3 @@ export class TalkLocalService {
         })
     }
 }
-
-export default TalkLocalService;

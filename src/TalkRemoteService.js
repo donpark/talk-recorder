@@ -10,7 +10,7 @@ export class TalkRemoteService {
         iframe.src = host;
         iframe.name = "talk-service";
         iframe.allow = "microphone; autoplay";
-        if (role === 'iframer') {
+        if (role === 'framer') {
             iframe.width = 0;
             iframe.height = 0;
             iframe.style.display = 'none';
@@ -23,27 +23,24 @@ export class TalkRemoteService {
     }
 
     async record(element, options) {
-        if (!element.iframe) {
+        if (!element.iframePort) {
             throw new Error('service frame to host failed to open');
         }
         return new Promise((resolve, reject) => {
-            const cleanup = receiveMessageFromFrame(element.iframe, e => {
-                if (e.data.type === 'recorded') {
-                    triggerEvent(element, e.data.type, e.data)
-                    resolve(e.data.blob);
-                    cleanup();
-                } else if (e.data.type === 'error') {
-                    triggerEvent(element, e.data.type, e.data)
-                    reject(e.data.error)
-                    cleanup();
-                }
-                // replyToMessage({ type: 'reply' }, e);
-            })
-            sendMessageToFrame(element.iframe, {
+            element.iframePort.addEventListener('recorded', e => {
+                const msg = e.detail;
+                triggerEvent(element, msg.type, msg)
+                resolve(msg.blob);
+            }, { once: true });
+            element.iframePort.addEventListener('error', e => {
+                const msg = e.detail;
+                triggerEvent(element, msg.type, msg)
+                reject(msg.error)
+            }, { once: true });
+            element.iframePort.postMessage({
                 type: 'record',
                 options,
-            });
-
+            })
             triggerEvent(element, 'record', {});
         })
     }
@@ -51,91 +48,33 @@ export class TalkRemoteService {
     stop(element, reason) {
         triggerEvent(element, 'stop', { reason });
 
-        if (element.iframe) {
-            receiveMessageFromFrame(element.iframe, e => {
-                console.log("iframer received", e);
-                // replyToMessage({ type: 'reply' }, e);
-            }, true)
-            sendMessageToFrame(element.iframe, { type: 'stop' });
+        if (element.iframePort) {
+            element.iframePort.postMessage({ type: 'stop' });
         }
     }
 
     async convert(element, audioBlob, options = {}) {
-        if (!element.iframe) {
+        if (!element.iframePort) {
             throw new Error('service frame to host failed to open');
         }
 
         return new Promise((resolve, reject) => {
-            const cleanup = receiveMessageFromFrame(element.iframe, e => {
-                console.log('convert received message', e);
-                if (e.data.type === 'converted') {
-                    triggerEvent(element, e.data.type, e.data)
-                    resolve(e.data.blob);
-                    cleanup();
-                } else if (e.data.type === 'error') {
-                    triggerEvent(element, e.data.type, e.data)
-                    reject(e.data.error)
-                    cleanup();
-                }
-                // replyToMessage({ type: 'reply' }, e);
+            element.iframePort.addEventListener('converted', e => {
+                const msg = e.detail;
+                triggerEvent(element, msg.type, msg)
+                resolve(msg.blob);
+            }, { once: true });
+            element.iframePort.addEventListener('error', e => {
+                const msg = e.detail;
+                triggerEvent(element, msg.type, msg)
+                reject(msg.error)
+            }, { once: true });
+            element.iframePort.postMessage({
+                type: 'convert',
+                blob: audioBlob,
+                options,
             })
-
-            console.log('convert sending message', {
-                type: 'convert',
-                blob: audioBlob,
-                options,
-            });
-            sendMessageToFrame(element.iframe, {
-                type: 'convert',
-                blob: audioBlob,
-                options,
-            });
-
             triggerEvent(element, 'convert', {});
         })
     }
 }
-
-function referrerOrigin() {
-    if (!document.referrer) {
-        return null;
-    }
-    const url = new URL(document.referrer);
-    return `${url.protocol}//${url.host}`;
-}
-
-function replyToMessage(reply, msg) {
-    if (!reply) {
-        throw new Error('reply is null');
-    }
-    if (!msg || !msg.source) {
-        throw new Error('message to reply to or its source is null');
-    }
-    msg.source.postMessage(reply, msg.origin);
-}
-
-function sendMessageToFrame(frame, msg) {
-    if (!frame || !frame.src) {
-        throw new Error('frame or frame.src is null');
-    }
-    const frameURL = new URL(frame.src);
-    const frameOrigin = `${frameURL.protocol}//${frameURL.host}`;
-
-    frame.contentWindow.postMessage(msg, frameOrigin);
-}
-
-function receiveMessageFromFrame(frame, receiver, once = false) {
-    if (!frame || !frame.src) {
-        throw new Error('frame or frame.src is null');
-    }
-    const frameURL = new URL(frame.src);
-    const frameOrigin = `${frameURL.protocol}//${frameURL.host}`;
-
-    const listener = e => e.origin === frameOrigin && receiver(e);
-    window.addEventListener('message', listener, { once });
-    return () => {
-        window.removeEventListener('message', listener);
-    }
-}
-
-export default TalkRemoteService;
