@@ -41,7 +41,8 @@ export class TalkRecorder extends HTMLElement {
             this.appendChild(this.iframe);
         } else {
             this.service = new TalkLocalService();
-            if (this.role === 'iframed') {
+
+            if (this.role === 'iframed' && parent) {
                 let iframerOrigin;
                 const cleanup = receiveMessageFromParent(e => {
                     iframerOrigin = e.origin;
@@ -60,6 +61,7 @@ export class TalkRecorder extends HTMLElement {
                             console.error('unknown message type', e.data);
                     }
                 })
+
                 this.addEventListener('recorded', e => {
                     const { blob } = e.detail;
                     if (blob && iframerOrigin) {
