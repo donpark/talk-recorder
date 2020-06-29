@@ -9,17 +9,13 @@ import {
 const AudioContext = window.AudioContext || window.webkitAudioContext;
 const getUserMedia = navigator.mediaDevices ? navigator.mediaDevices.getUserMedia : navigator.getUserMedia;
 
-// HACK: determine default worker URL using script tag's src attribute if available.
-let workerUrl = "./lamemp3/worker.js";
-if (document.currentScript && document.currentScript.src) {
-    console.log('determine workerUrl', {
-        currentScript: document.currentScript,
-        currentScriptSrc: document.currentScript.src,
-    })
-    const scriptUrl = new URL(document.currentScript.src, document.baseURI).toString();
-    const scriptBaseUrl = scriptUrl.substr(0, scriptUrl.lastIndexOf('/'));
-    workerUrl = `${scriptBaseUrl}/lamemp3/worker.js`;
+// HACK: Used to determine full worker URL using script tag's src attribute if available.
+const currentScriptURL = document.currentScript ? new URL(document.currentScript.src, document.baseURI) : null;
+function getFullScriptUrl(relativeUrl) {
+    return currentScriptURL ? new URL(relativeUrl, currentScriptURL).toString() : relativeUrl;
 }
+const workerUrl = getFullScriptUrl("./lamemp3/worker.js");
+console.log('workerUrl', workerUrl);
 
 export class TalkLocalService {
     constructor() {
