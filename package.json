@@ -32,7 +32,10 @@
         "parcel-plugin-txt": "^1.0.3"
     },
     "browserslist": [
-        "defaults"
+        "Chrome >= 67",
+        "Firefox >= 63",
+        "Edge >= 79",
+        "Safari >= 13.1"
     ],
     "staticFiles": {
         "staticPath": "static",
